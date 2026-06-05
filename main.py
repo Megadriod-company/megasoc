@@ -673,37 +673,47 @@ def threat_intel_lookup(indicator: str, type: str = "ip"):
     return {"error": "Unsupported type"}
 
 # ==============================================================================
-# 12. FRONTEND ROUTING
+# 12. PAGES
 # ==============================================================================
 @app.get("/", response_class=HTMLResponse)
-async def route_home(request: Request): return templates.TemplateResponse("home.html", {"request": request})
+def read_home(request: Request):
+    return templates.TemplateResponse(request, "home.html", {"request": request})
 
 @app.get("/login", response_class=HTMLResponse)
-async def route_login(request: Request): return templates.TemplateResponse("login.html", {"request": request})
+def read_login(request: Request):
+    return templates.TemplateResponse(request, "login.html", {"request": request})
 
 @app.get("/register", response_class=HTMLResponse)
-async def route_register(request: Request): return templates.TemplateResponse("register.html", {"request": request})
+def read_register(request: Request):
+    return templates.TemplateResponse(request, "register.html", {"request": request})
 
 @app.get("/dashboard", response_class=HTMLResponse)
-async def route_dashboard(request: Request): return templates.TemplateResponse("dashboard.html", {"request": request})
+def read_dashboard(request: Request):
+    return templates.TemplateResponse(request, "dashboard.html", {"request": request})
 
 @app.get("/siem-logs", response_class=HTMLResponse)
-async def route_siem(request: Request): return templates.TemplateResponse("siem_logs.html", {"request": request})
+def read_siem(request: Request):
+    return templates.TemplateResponse(request, "siem_logs.html", {"request": request})
 
 @app.get("/incident-response", response_class=HTMLResponse)
-async def route_ir(request: Request): return templates.TemplateResponse("incident_response.html", {"request": request})
+def read_ir(request: Request):
+    return templates.TemplateResponse(request, "incident_response.html", {"request": request})
 
 @app.get("/threat-intel", response_class=HTMLResponse)
-async def route_ti(request: Request): return templates.TemplateResponse("threat_intel.html", {"request": request})
+def read_ti(request: Request):
+    return templates.TemplateResponse(request, "threat_intel.html", {"request": request})
 
 @app.get("/soar-automation", response_class=HTMLResponse)
-async def route_soar(request: Request): return templates.TemplateResponse("soar_automation.html", {"request": request})
+def read_soar(request: Request):
+    return templates.TemplateResponse(request, "soar_automation.html", {"request": request})
 
 @app.get("/phishing-analyzer", response_class=HTMLResponse)
-async def route_phishing(request: Request): return templates.TemplateResponse("phishing_analyzer.html", {"request": request})
+def read_phishing(request: Request):
+    return templates.TemplateResponse(request, "phishing_analyzer.html", {"request": request})
 
 @app.get("/agent-management", response_class=HTMLResponse)
-async def route_agents(request: Request): return templates.TemplateResponse("agent_management.html", {"request": request})
+def read_agent_management(request: Request):
+    return templates.TemplateResponse(request, "agent_management.html", {"request": request})
 
 @app.get("/logo.png")
 async def serve_logo():
