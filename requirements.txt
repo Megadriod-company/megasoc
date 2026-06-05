@@ -16,3 +16,4 @@ tldextract
 gunicorn
 jinja2
 python-jose[cryptography]
+psycopg2-binary
