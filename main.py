@@ -55,14 +55,30 @@ except ImportError:
     print("[WARNING] scikit-learn, numpy, or pandas not installed. UEBA ML features will be disabled.")
 
 # ==============================================================================
-# 1. CONFIGURATION
+# 1. CONFIGURATION (ADAPTED FOR ROBUST CLOUD POOLING)
 # ==============================================================================
 SECRET_KEY = os.getenv("MEGASOC_SECRET_KEY", "MEGADROID_ENTERPRISE_XDR_TIER1_2026")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 1440 
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./megasoc_xdr.db")
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {})
+
+# Automatically adapt connection strategy based on Database engine
+if "sqlite" in DATABASE_URL:
+    engine = create_engine(
+        DATABASE_URL, 
+        connect_args={"check_same_thread": False}
+    )
+else:
+    # Production Supabase / pg8000 pooled connection parameters
+    engine = create_engine(
+        DATABASE_URL,
+        pool_pre_ping=True,   # Heartbeats database sockets before sending SQL queries
+        pool_recycle=300,     # Safely retires connections older than 5 minutes
+        pool_size=10,         # Keeps a baseline of connections ready
+        max_overflow=20       # Allows bursting for high concurrent loads
+    )
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -135,14 +151,13 @@ class EventLog(Base):
     mitre_technique = Column(String, nullable=True)
 
 class Case(Base):
-    """Advanced Case Management"""
     __tablename__ = "cases"
     id = Column(Integer, primary_key=True, index=True)
     tenant_id = Column(Integer, ForeignKey("tenants.id"))
     title = Column(String)
-    status = Column(String, default="Open") # Open, Investigating, Closed
+    status = Column(String, default="Open")
     severity = Column(String)
-    mitre_tactics = Column(String) # JSON list of tactics
+    mitre_tactics = Column(String)
     assigned_to = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
@@ -160,7 +175,6 @@ class Alert(Base):
     status = Column(String, default="New")
 
 class Vulnerability(Base):
-    """Proactive Attack Surface Management"""
     __tablename__ = "vulnerabilities"
     id = Column(Integer, primary_key=True, index=True)
     tenant_id = Column(Integer, ForeignKey("tenants.id"))
@@ -172,7 +186,6 @@ class Vulnerability(Base):
     detected_at = Column(DateTime, default=datetime.datetime.utcnow)
 
 class AutomationRule(Base):
-    """Multi-Step Playbooks"""
     __tablename__ = "automation_rules"
     id = Column(Integer, primary_key=True, index=True)
     tenant_id = Column(Integer, ForeignKey("tenants.id"))
@@ -182,7 +195,6 @@ class AutomationRule(Base):
     is_active = Column(Boolean, default=True)
 
 class PlaybookState(Base):
-    """Tracks running Multi-Step SOAR playbooks waiting for human approval"""
     __tablename__ = "playbook_states"
     id = Column(Integer, primary_key=True, index=True)
     tenant_id = Column(Integer, ForeignKey("tenants.id"))
