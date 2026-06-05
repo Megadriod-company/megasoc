@@ -55,7 +55,7 @@ except ImportError:
     print("[WARNING] scikit-learn, numpy, or pandas not installed. UEBA ML features will be disabled.")
 
 # ==============================================================================
-# 1. CONFIGURATION (ADAPTED FOR ROBUST CLOUD POOLING)
+# 1. CONFIGURATION (FAIL-SAFE AUTOMATIC FALLBACK)
 # ==============================================================================
 SECRET_KEY = os.getenv("MEGASOC_SECRET_KEY", "MEGADROID_ENTERPRISE_XDR_TIER1_2026")
 ALGORITHM = "HS256"
@@ -63,21 +63,26 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 1440
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./megasoc_xdr.db")
 
-# Automatically adapt connection strategy based on Database engine
-if "sqlite" in DATABASE_URL:
-    engine = create_engine(
-        DATABASE_URL, 
-        connect_args={"check_same_thread": False}
-    )
-else:
-    # Production Supabase / pg8000 pooled connection parameters
-    engine = create_engine(
-        DATABASE_URL,
-        pool_pre_ping=True,   # Heartbeats database sockets before sending SQL queries
-        pool_recycle=300,     # Safely retires connections older than 5 minutes
-        pool_size=10,         # Keeps a baseline of connections ready
-        max_overflow=20       # Allows bursting for high concurrent loads
-    )
+# Fix Render URL naming
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+# Fail-safe database connection logic
+try:
+    print(f"[*] Attempting to connect to primary database...")
+    if "sqlite" in DATABASE_URL:
+        engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+    else:
+        engine = create_engine(DATABASE_URL, pool_pre_ping=True, pool_recycle=300)
+    
+    # Test connection immediately to see if it is alive
+    with engine.connect() as conn:
+        print("[SUCCESS] Connected to primary database successfully!")
+except Exception as e:
+    print(f"[WARNING] Primary database connection failed: {e}")
+    print("[*] Falling back to local SQLite database to prevent application crash...")
+    DATABASE_URL = "sqlite:///./megasoc_xdr.db"
+    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
