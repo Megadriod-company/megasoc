@@ -1,0 +1,16 @@
+fastapi 
+uvicorn 
+sqlalchemy 
+pydantic 
+passlib[bcrypt] 
+pyjwt 
+python-multipart 
+requests 
+dnspython 
+PyPDF2 
+Pillow 
+pefile 
+beautifulsoup4 
+user-agents 
+tldextract
+gunicorn

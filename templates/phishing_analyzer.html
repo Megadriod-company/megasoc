@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <title>Phishing & BEC Analyzer - MegaSOC</title>
+    <meta name="description" content="MegaSOC Unified Security Dashboard - Phishing Analyzer">
+    
+    <!-- Auth Guard -->
+    <script>
+        const token = localStorage.getItem('megasoc_token');
+        if (!token) {
+            window.location.href = '/login';
+        }
+    </script>
+
+    <!-- Tailwind CSS for Enterprise Styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Premium Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts: Inter & Space Grotesk -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { 
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Space Grotesk', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace']
+                    },
+                    colors: {
+                        cyber: {
+                            950: '#040914',
+                            900: '#0B1120',
+                            800: '#1E293B',
+                            accent: '#3B82F6',
+                            neon: '#06B6D4',
+                            alert: '#EF4444',
+                            safe: '#10B981',
+                            warning: '#F59E0B',
+                            purple: '#8B5CF6'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0B1120; }
+        ::-webkit-scrollbar-thumb { background: #1E293B; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3B82F6; }
+        
+        .glass-panel {
+            background: rgba(11, 17, 32, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(30, 41, 59, 0.8);
+        }
+
+        .dropzone-active {
+            border-color: #06B6D4 !important;
+            background-color: rgba(6, 182, 212, 0.1) !important;
+        }
+
+        .heuristic-pass { color: #10B981; background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.2); }
+        .heuristic-fail { color: #EF4444; background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.2); }
+        .heuristic-warn { color: #F59E0B; background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.2); }
+
+        /* Custom Tab Styling */
+        .tab-btn { border-bottom: 2px solid transparent; transition: all 0.2s; }
+        .tab-btn.active { border-bottom: 2px solid #06B6D4; color: #06B6D4; }
+
+        /* ===== MOBILE-FIRST RESPONSIVE FRAMEWORK ===== */
+        :root {
+            --sidebar-width-lg: 256px;
+            --sidebar-width-md: 200px;
+            --header-height: 64px;
+            --bottom-nav-height: 72px;
+        }
+
+        @media (max-width: 767px) {
+            body { padding-bottom: var(--bottom-nav-height); }
+            aside.w-64 {
+                position: fixed; left: 0; top: 0; height: 100vh; width: 280px;
+                transform: translateX(-110%); transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.2, 1);
+                z-index: 60; overflow-y: auto; -webkit-overflow-scrolling: touch;
+            }
+            aside.w-64.mobile-open { transform: translateX(0); }
+            #mobile-overlay {
+                display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7);
+                z-index: 50; backdrop-filter: blur(4px);
+            }
+            #mobile-overlay.active { display: block; }
+            .mobile-hamburger {
+                display: inline-flex; width: 44px; height: 44px; align-items: center;
+                justify-content: center; background: transparent; border: none;
+                cursor: pointer; color: #cbd5e1; z-index: 61;
+            }
+            .mobile-hamburger:active { background: rgba(255, 255, 255, 0.05); border-radius: 8px; }
+            .mega-bottom-nav {
+                display: flex; position: fixed; bottom: 0; left: 0; right: 0; height: var(--bottom-nav-height);
+                background: rgba(4, 9, 20, 0.96); border-top: 1px solid rgba(30, 41, 59, 0.8);
+                z-index: 55; gap: 0; justify-content: space-around; padding: 8px 0;
+                box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.5); backdrop-filter: blur(8px);
+            }
+            .mega-bottom-nav a {
+                display: flex; flex-direction: column; align-items: center; gap: 4px; color: #94a3b8;
+                text-decoration: none; font-size: 10px; font-weight: 500; padding: 8px; border-radius: 8px;
+                -webkit-tap-highlight-color: transparent;
+            }
+            .mega-bottom-nav a:active { background: rgba(255, 255, 255, 0.05); }
+            .mega-bottom-nav a.active { color: #06B6D4; }
+            .mega-bottom-nav .nav-icon { font-size: 20px; line-height: 1; }
+            main { padding-bottom: var(--bottom-nav-height) !important; }
+            .flex-1 { padding-bottom: var(--bottom-nav-height) !important; }
+            header { padding: 0 12px !important; }
+            .p-8, .p-6 { padding: 16px !important; }
+            .glass-panel { border-radius: 12px; margin-bottom: 12px; }
+            .grid { gap: 12px !important; }
+            .grid-cols-1, .grid-cols-2, .grid-cols-3, .grid-cols-4 { grid-template-columns: 1fr; }
+            button, a { min-height: 44px; min-width: 44px; }
+            aside .text-2xl { font-size: 18px; }
+            aside span:not(.text-white) { font-size: 12px; }
+            .hidden-mobile { display: none !important; }
+            header h1 { font-size: 18px; }
+            .h-20 { height: 60px; }
+        }
+
+        @media (min-width: 768px) and (max-width: 1024px) {
+            aside.w-64 { width: var(--sidebar-width-md); }
+            .p-8 { padding: 20px; }
+            .grid-cols-4, .grid-cols-3 { grid-template-columns: repeat(2, 1fr); }
+            header { padding: 0 20px !important; }
+            .mega-bottom-nav { display: none; }
+            main { padding-bottom: 0 !important; }
+        }
+
+        @media (min-width: 1025px) {
+            aside.w-64 { width: var(--sidebar-width-lg); transform: none !important; }
+            #mobile-overlay { display: none !important; }
+            .mobile-hamburger { display: none !important; }
+            .mega-bottom-nav { display: none !important; }
+            main { padding-bottom: 0 !important; }
+            .hidden-desktop { display: none !important; }
+            .p-8 { padding: 32px; }
+        }
+
+        @supports (padding: max(0px)) {
+            aside.w-64 { padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
+            header { padding-left: max(12px, env(safe-area-inset-left)) !important; padding-right: max(12px, env(safe-area-inset-right)) !important; padding-top: max(8px, env(safe-area-inset-top)) !important; }
+            .mega-bottom-nav { padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+        }
+
+        @media (hover: none) and (pointer: coarse) {
+            button, a, input, select, textarea { min-height: 48px; min-width: 48px; }
+        }
+
+        html { scroll-behavior: smooth; }
+        input { font-size: 16px; }
+
+        @media (max-width: 480px) {
+            h1, .text-3xl { font-size: 20px; }
+            h2, .text-2xl { font-size: 18px; }
+            h3, .text-lg { font-size: 16px; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+        }
+    </style>
+</head>
+<body class="bg-cyber-950 text-gray-300 font-sans antialiased h-screen overflow-hidden flex selection:bg-cyber-accent selection:text-white">
+
+    <!-- Mobile Overlay -->
+    <div id="mobile-overlay"></div>
+
+    <!-- Sidebar Navigation -->
+    <aside class="w-64 glass-panel border-r border-cyber-800 flex flex-col z-20 h-full flex-shrink-0 transition-all duration-300 relative">
+        <!-- Logo -->
+        <div class="h-20 flex items-center px-6 border-b border-cyber-800">
+            <a href="/" class="flex items-center gap-3 group cursor-pointer w-full">
+                <div class="flex-shrink-0 flex items-center gap-3 group cursor-pointer">
+                    <!-- Megadriod Logo with Fallback -->
+                    <img src="logo.png" alt="Megadriod Logo" class="h-10 w-auto group-hover:scale-105 transition-transform" 
+                         onerror="this.onerror=null; this.outerHTML='<div class=\'w-10 h-10 rounded-lg bg-gradient-to-br from-cyber-accent to-cyber-neon flex items-center justify-center text-white text-xl shadow-[0_0_15px_rgba(6,182,212,0.5)]\'><i class=\'fas fa-shield-virus\'></i></div>'">
+                    <span class="font-display font-bold text-2xl tracking-tight text-white">
+                        Mega<span class="text-white">SOC</span>
+                    </span>
+                </div>
+            </a>
+        </div>
+
+        <!-- Navigation Links -->
+        <nav class="flex-1 overflow-y-auto py-6 px-4 space-y-1.5 custom-scrollbar">
+            <p class="px-2 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Platform Core</p>
+            <a href="/dashboard" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-cyber-800/50 hover:text-white font-medium transition-colors">
+                <i class="fas fa-chart-line w-5 text-center"></i> Dashboard Overview
+            </a>
+            <a href="/agent-management" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-cyber-800/50 hover:text-white font-medium transition-colors">
+                <i class="fas fa-server w-5 text-center"></i> Endpoint Agents
+            </a>
+            
+            <p class="px-2 text-xs font-semibold text-gray-500 uppercase tracking-wider mt-6 mb-2">Security Labs</p>
+            <a href="/siem-logs" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-cyber-800/50 hover:text-white font-medium transition-colors">
+                <i class="fas fa-radar w-5 text-center"></i> SIEM & Logs
+            </a>
+            <a href="/incident-response" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-cyber-800/50 hover:text-white font-medium transition-colors">
+                <i class="fas fa-shield-cross w-5 text-center"></i> Incident Response
+            </a>
+            <a href="/threat-intel" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-cyber-800/50 hover:text-white font-medium transition-colors">
+                <i class="fas fa-earth-americas w-5 text-center"></i> Threat Intelligence
+            </a>
+            <a href="/soar-automation" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-cyber-800/50 hover:text-white font-medium transition-colors">
+                <i class="fas fa-wand-magic-sparkles w-5 text-center"></i> SOAR Automation
+            </a>
+            <!-- Active State on Phishing Analyzer -->
+            <a href="/phishing-analyzer" class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-cyber-accent/10 text-cyber-neon border border-cyber-accent/20 font-medium transition-colors">
+                <i class="fas fa-envelope-shield w-5 text-center"></i> Email & URLs
+            </a>
+        </nav>
+
+        <!-- User & System Status -->
+        <div class="p-4 border-t border-cyber-800">
+            <div class="flex items-center justify-between mb-4 px-2">
+                <div class="flex items-center gap-2 text-xs">
+                    <div class="w-2 h-2 rounded-full bg-cyber-safe animate-pulse"></div>
+                    <span class="text-gray-400">System Online</span>
+                </div>
+                <span class="text-xs text-gray-500" id="clock-display">00:00:00</span>
+            </div>
+            <button onclick="logout()" class="w-full flex items-center justify-center gap-2 py-2 px-4 border border-cyber-800 hover:bg-cyber-800 rounded-md text-sm font-medium text-gray-300 transition-colors">
+                <i class="fas fa-sign-out-alt"></i> Terminate Session
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col h-full relative overflow-hidden bg-cyber-950">
+        <!-- Top Navbar -->
+        <header class="h-20 glass-panel border-b border-cyber-800 flex items-center justify-between px-8 z-10 shrink-0">
+            <button class="mobile-hamburger" aria-label="Toggle navigation menu">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 7h16M4 12h16M4 17h16"></path>
+                </svg>
+            </button>
+
+            <h1 class="text-2xl font-display font-bold text-white hidden md:flex items-center gap-3">
+                <i class="fas fa-envelope-open-text text-orange-400"></i> BEC & Phishing URL Defense
+            </h1>
+            <h1 class="text-xl font-display font-bold text-white md:hidden flex items-center gap-2">
+                <i class="fas fa-envelope-open-text text-orange-400"></i> Phishing
+            </h1>
+            
+            <div class="flex items-center gap-6">
+                <!-- Admin Profile -->
+                <div class="flex items-center gap-3 pl-6 border-l border-cyber-800">
+                    <div class="w-9 h-9 rounded-full bg-gradient-to-r from-orange-400 to-red-500 flex items-center justify-center text-white font-bold">
+                        AD
+                    </div>
+                    <div class="hidden md:block">
+                        <p class="text-sm font-semibold text-white leading-tight">Admin User</p>
+                        <p class="text-xs text-orange-400">Threat Analyst</p>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Scrollable Workspace -->
+        <div class="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar relative">
+            
+            <!-- Upload / Input Section -->
+            <div id="upload-section" class="max-w-4xl mx-auto mb-8 transition-all duration-500">
+                
+                <!-- Analyzer Tabs -->
+                <div class="flex space-x-6 border-b border-cyber-800 mb-6 overflow-x-auto custom-scrollbar">
+                    <button onclick="switchTab('email-tab')" id="btn-email-tab" class="tab-btn active pb-3 px-2 text-sm font-bold uppercase tracking-wider text-gray-400 hover:text-white whitespace-nowrap">
+                        <i class="fas fa-file-envelope mr-2"></i> Raw Email Artifact
+                    </button>
+                    <button onclick="switchTab('url-tab')" id="btn-url-tab" class="tab-btn pb-3 px-2 text-sm font-bold uppercase tracking-wider text-gray-400 hover:text-white whitespace-nowrap">
+                        <i class="fas fa-link mr-2"></i> Phishing URL Scanner
+                    </button>
+                </div>
+
+                <!-- Tab 1: Email Dropzone -->
+                <div id="email-tab" class="glass-panel p-6 md:p-8 rounded-xl border-2 border-dashed border-cyber-800 relative group dropzone-container">
+                    <input type="file" id="file-input" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" accept=".eml,.msg">
+                    
+                    <div class="flex flex-col items-center justify-center text-center pointer-events-none">
+                        <div class="w-20 h-20 bg-cyber-900 rounded-full flex items-center justify-center mb-4 border border-cyber-800 group-hover:border-cyber-neon transition-colors shadow-lg">
+                            <i class="fas fa-cloud-upload-alt text-3xl text-cyber-neon group-hover:scale-110 transition-transform"></i>
+                        </div>
+                        <h2 class="text-xl md:text-2xl font-display font-bold text-white mb-2">Upload Raw Email File</h2>
+                        <p class="text-gray-400 mb-6 max-w-md text-sm md:text-base">Drag & drop a <span class="text-white font-mono">.eml</span> or <span class="text-white font-mono">.msg</span> file here, or click to browse. The engine will extract headers, URLs, and perform deep BEC heuristics.</p>
+                        <button class="bg-cyber-900 border border-cyber-800 text-white font-semibold py-2 px-6 rounded-md group-hover:bg-cyber-800 transition-colors pointer-events-auto">
+                            Select File
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tab 2: URL Scanner -->
+                <div id="url-tab" class="hidden glass-panel p-6 md:p-8 rounded-xl border border-cyber-800">
+                    <div class="flex flex-col items-center justify-center text-center">
+                        <div class="w-20 h-20 bg-cyber-900 rounded-full flex items-center justify-center mb-4 border border-cyber-800 shadow-lg">
+                            <i class="fas fa-globe-americas text-3xl text-purple-400"></i>
+                        </div>
+                        <h2 class="text-xl md:text-2xl font-display font-bold text-white mb-2">Scan Suspicious URL</h2>
+                        <p class="text-gray-400 mb-8 max-w-lg text-sm md:text-base">Enter a suspect URL or domain below. MegaSOC will query live DNS records, check SSL validity, scan for typosquatting, and cross-reference OTX threat feeds.</p>
+                        
+                        <div class="w-full max-w-2xl relative flex flex-col md:flex-row gap-2 md:gap-0">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none hidden md:flex">
+                                <i class="fas fa-search text-gray-500"></i>
+                            </div>
+                            <input type="url" id="url-input" placeholder="https://secure-login-update.com/auth" 
+                                class="flex-1 bg-cyber-950 border border-cyber-800 rounded-lg md:rounded-r-none md:rounded-l-lg py-4 px-4 md:pl-11 text-white focus:outline-none focus:border-cyber-neon font-mono transition-colors text-sm">
+                            <button onclick="scanUrl()" class="bg-cyber-accent hover:bg-blue-600 text-white font-bold py-4 px-8 rounded-lg md:rounded-l-none md:rounded-r-lg transition-colors whitespace-nowrap w-full md:w-auto flex justify-center items-center">
+                                <i class="fas fa-radar mr-2"></i> Analyze
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Loading State -->
+            <div id="loading-state" class="hidden max-w-4xl mx-auto flex flex-col items-center justify-center py-20 text-center">
+                <i class="fas fa-shield-virus fa-spin text-5xl text-orange-400 mb-6" id="loading-icon"></i>
+                <h3 class="text-xl font-display font-bold text-white mb-2" id="loading-title">Analyzing Artifacts...</h3>
+                <p class="text-gray-400 font-mono text-sm max-w-sm" id="loading-desc">Extracting forensic telemetry.</p>
+            </div>
+
+            <!-- EMAIL Results Section (Hidden initially) -->
+            <div id="email-results-section" class="hidden max-w-6xl mx-auto space-y-6 pb-12">
+                <!-- Action Bar & Header -->
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-2">
+                    <div>
+                        <h2 class="text-3xl font-display font-bold text-white">Email Analysis Report</h2>
+                        <p class="text-gray-400 font-mono text-sm mt-1" id="report-filename">report_name.eml</p>
+                    </div>
+                    <div class="flex flex-wrap gap-3 w-full md:w-auto">
+                        <button onclick="resetAnalyzer()" class="flex-1 md:flex-none bg-cyber-900 border border-cyber-800 hover:bg-cyber-800 text-white font-semibold py-2 px-4 rounded transition-colors text-sm">
+                            <i class="fas fa-redo-alt mr-2"></i> Scan Another
+                        </button>
+                        <button onclick="exportReport('email')" class="flex-1 md:flex-none bg-cyber-accent hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded transition-colors text-sm">
+                            <i class="fas fa-download mr-2"></i> Export JSON
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Top Row: Score & Metadata -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Risk Score Card -->
+                    <div class="glass-panel p-6 rounded-xl border border-cyber-800 flex flex-col items-center justify-center text-center relative overflow-hidden">
+                        <div id="email-score-glow" class="absolute inset-0 opacity-20 transition-colors duration-1000"></div>
+                        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2 relative z-10">Total Risk Score</h3>
+                        <div class="flex items-baseline gap-1 relative z-10">
+                            <span class="text-6xl font-display font-bold" id="email-risk-score">0</span>
+                            <span class="text-xl text-gray-500">/100</span>
+                        </div>
+                        <p class="text-sm font-bold mt-3 px-4 py-1 rounded-full uppercase tracking-widest relative z-10 border" id="email-risk-label">Clean</p>
+                    </div>
+
+                    <!-- Email Metadata -->
+                    <div class="lg:col-span-2 glass-panel p-6 rounded-xl border border-cyber-800">
+                        <h3 class="text-lg font-bold text-white mb-4 border-b border-cyber-800 pb-2"><i class="fas fa-info-circle mr-2 text-cyber-accent"></i> Core Metadata</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8 text-sm">
+                            <div>
+                                <span class="block text-gray-500 text-xs uppercase tracking-wider font-bold mb-1">Sender (From)</span>
+                                <span class="text-white font-mono break-all" id="meta-from">--</span>
+                            </div>
+                            <div>
+                                <span class="block text-gray-500 text-xs uppercase tracking-wider font-bold mb-1">Subject</span>
+                                <span class="text-white font-medium break-words" id="meta-subject">--</span>
+                            </div>
+                            <div>
+                                <span class="block text-gray-500 text-xs uppercase tracking-wider font-bold mb-1">Date Sent</span>
+                                <span class="text-white font-mono" id="meta-date">--</span>
+                            </div>
+                            <div>
+                                <span class="block text-gray-500 text-xs uppercase tracking-wider font-bold mb-1">Authentication Results</span>
+                                <div class="flex flex-wrap gap-2 mt-1">
+                                    <span id="badge-spf" class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border heuristic-warn">SPF: Unknown</span>
+                                    <span id="badge-dkim" class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border heuristic-warn">DKIM: Unknown</span>
+                                    <span id="badge-dmarc" class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border heuristic-warn">DMARC: Unknown</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Middle Row: Deep Heuristics -->
+                <div class="glass-panel p-6 rounded-xl border border-cyber-800">
+                    <h3 class="text-lg font-bold text-white mb-4 border-b border-cyber-800 pb-2"><i class="fas fa-shield-virus mr-2 text-orange-400"></i> BEC & Phishing Heuristics</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="heuristics-grid">
+                        <!-- Populated dynamically via JS -->
+                    </div>
+                </div>
+
+                <!-- Bottom Row: IOCs (URLs and Attachments) -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="glass-panel p-6 rounded-xl border border-cyber-800 flex flex-col max-h-[400px]">
+                        <h3 class="text-lg font-bold text-white mb-4 border-b border-cyber-800 pb-2 flex justify-between items-center">
+                            <span><i class="fas fa-link mr-2 text-cyber-neon"></i> Extracted URLs</span>
+                            <span class="text-xs bg-cyber-900 px-2 py-1 rounded text-gray-400" id="url-count">0</span>
+                        </h3>
+                        <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2" id="url-list">
+                            <div class="text-gray-500 text-sm text-center py-8">No URLs found in email body.</div>
+                        </div>
+                    </div>
+                    <div class="glass-panel p-6 rounded-xl border border-cyber-800 flex flex-col max-h-[400px]">
+                        <h3 class="text-lg font-bold text-white mb-4 border-b border-cyber-800 pb-2 flex justify-between items-center">
+                            <span><i class="fas fa-paperclip mr-2 text-purple-400"></i> Extracted Attachments</span>
+                            <span class="text-xs bg-cyber-900 px-2 py-1 rounded text-gray-400" id="attachment-count">0</span>
+                        </h3>
+                        <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-3" id="attachment-list">
+                            <div class="text-gray-500 text-sm text-center py-8">No attachments found.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- URL Results Section (Hidden initially) -->
+            <div id="url-results-section" class="hidden max-w-6xl mx-auto space-y-6 pb-12">
+                <!-- Action Bar & Header -->
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-2">
+                    <div>
+                        <h2 class="text-3xl font-display font-bold text-white">URL Threat Report</h2>
+                        <p class="text-gray-400 font-mono text-sm mt-1 break-all" id="report-url">https://example.com</p>
+                    </div>
+                    <div class="flex flex-wrap gap-3 w-full md:w-auto">
+                        <button onclick="resetAnalyzer()" class="flex-1 md:flex-none bg-cyber-900 border border-cyber-800 hover:bg-cyber-800 text-white font-semibold py-2 px-4 rounded transition-colors text-sm">
+                            <i class="fas fa-redo-alt mr-2"></i> Scan Another
+                        </button>
+                        <button onclick="exportReport('url')" class="flex-1 md:flex-none bg-cyber-accent hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded transition-colors text-sm">
+                            <i class="fas fa-download mr-2"></i> Export JSON
+                        </button>
+                        <button onclick="triggerSOARBlock()" id="btn-block-url" class="flex-1 md:flex-none bg-cyber-alert/10 border border-cyber-alert/50 text-cyber-alert hover:bg-cyber-alert hover:text-white font-bold py-2 px-4 rounded transition-colors text-sm hidden">
+                            <i class="fas fa-ban mr-2"></i> Block Domain
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Top Row: URL Score & Domain Info -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- URL Risk Score -->
+                    <div class="glass-panel p-6 rounded-xl border border-cyber-800 flex flex-col items-center justify-center text-center relative overflow-hidden">
+                        <div id="url-score-glow" class="absolute inset-0 opacity-20 transition-colors duration-1000"></div>
+                        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2 relative z-10">Domain Risk Score</h3>
+                        <div class="flex items-baseline gap-1 relative z-10">
+                            <span class="text-6xl font-display font-bold" id="url-risk-score">0</span>
+                            <span class="text-xl text-gray-500">/100</span>
+                        </div>
+                        <p class="text-sm font-bold mt-3 px-4 py-1 rounded-full uppercase tracking-widest relative z-10 border" id="url-risk-label">Clean</p>
+                    </div>
+
+                    <!-- Domain Structure & OTX -->
+                    <div class="lg:col-span-2 glass-panel p-6 rounded-xl border border-cyber-800">
+                        <h3 class="text-lg font-bold text-white mb-4 border-b border-cyber-800 pb-2"><i class="fas fa-sitemap mr-2 text-purple-400"></i> Target Domain Structure</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-y-4 gap-x-8 text-sm">
+                            <div>
+                                <span class="block text-gray-500 text-xs uppercase tracking-wider font-bold mb-1">Subdomain</span>
+                                <span class="text-white font-mono break-all" id="url-subdomain">--</span>
+                            </div>
+                            <div>
+                                <span class="block text-gray-500 text-xs uppercase tracking-wider font-bold mb-1">Root Domain</span>
+                                <span class="text-white font-mono break-all font-bold" id="url-domain">--</span>
+                            </div>
+                            <div>
+                                <span class="block text-gray-500 text-xs uppercase tracking-wider font-bold mb-1">Suffix (TLD)</span>
+                                <span class="text-cyber-neon font-mono font-bold" id="url-tld">--</span>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6 p-4 rounded-lg border flex items-center justify-between" id="homograph-container">
+                            <div class="flex items-center gap-3">
+                                <i class="fas fa-shield-virus text-2xl" id="homo-icon"></i>
+                                <div>
+                                    <h4 class="text-white font-bold text-sm">Homograph & Typosquatting Check</h4>
+                                    <p class="text-xs text-gray-400 mt-1" id="homo-desc">Analyzing domain characters for Cyrillic/homoglyph impersonation.</p>
+                                </div>
+                            </div>
+                            <span class="px-3 py-1 rounded text-xs font-bold uppercase tracking-widest border whitespace-nowrap ml-2" id="homo-badge">--</span>
+                        </div>
+
+                        <!-- AlienVault OTX Insight inside Domain Details -->
+                        <div class="mt-4 p-4 rounded-lg border border-cyber-800 bg-cyber-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4" id="otx-container">
+                            <div class="flex items-center gap-3">
+                                <i class="fas fa-satellite-dish text-2xl text-cyber-accent"></i>
+                                <div>
+                                    <h4 class="text-white font-bold text-sm">AlienVault OTX Threat Intel</h4>
+                                    <p class="text-xs text-gray-400 mt-1">Global community threat correlation.</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-4 w-full sm:w-auto text-sm font-mono">
+                                <div class="flex flex-col">
+                                    <span class="text-gray-500 text-[10px] uppercase">Pulse Count</span>
+                                    <span class="text-white font-bold" id="otx-pulse-count">0</span>
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="text-gray-500 text-[10px] uppercase">Malware Hits</span>
+                                    <span class="text-white font-bold" id="otx-malware-hits">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bottom Row: DNS and SSL -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- DNS Records -->
+                    <div class="glass-panel p-6 rounded-xl border border-cyber-800 flex flex-col max-h-[400px]">
+                        <h3 class="text-lg font-bold text-white mb-4 border-b border-cyber-800 pb-2 flex justify-between items-center">
+                            <span><i class="fas fa-network-wired mr-2 text-cyber-neon"></i> DNS Telemetry</span>
+                        </h3>
+                        <div class="flex-1 overflow-y-auto custom-scrollbar space-y-4 text-sm font-mono" id="dns-list">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- SSL Certificate -->
+                    <div class="glass-panel p-6 rounded-xl border border-cyber-800 flex flex-col max-h-[400px]">
+                        <h3 class="text-lg font-bold text-white mb-4 border-b border-cyber-800 pb-2 flex justify-between items-center">
+                            <span><i class="fas fa-lock mr-2 text-orange-400"></i> SSL Certificate Inspector</span>
+                        </h3>
+                        <div class="flex-1 overflow-y-auto custom-scrollbar space-y-4" id="ssl-details">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Navigation for Mobile (Mobile Only) -->
+    <nav class="mega-bottom-nav hidden-desktop" aria-label="Mobile navigation">
+        <a href="/dashboard" title="Dashboard">
+            <i class="fas fa-chart-line nav-icon"></i>
+            <span>Dashboard</span>
+        </a>
+        <a href="/siem-logs" title="SIEM Logs">
+            <i class="fas fa-radar nav-icon"></i>
+            <span>SIEM</span>
+        </a>
+        <a href="/incident-response" title="Incident Response">
+            <i class="fas fa-shield-cross nav-icon"></i>
+            <span>IR</span>
+        </a>
+        <a href="/threat-intel" title="Threat Intelligence">
+            <i class="fas fa-earth-americas nav-icon"></i>
+            <span>Threats</span>
+        </a>
+        <a href="/soar-automation" title="SOAR">
+            <i class="fas fa-wand-magic-sparkles nav-icon"></i>
+            <span>SOAR</span>
+        </a>
+        <a href="/phishing-analyzer" title="Phishing" class="active">
+            <i class="fas fa-envelope-shield nav-icon"></i>
+            <span>Email</span>
+        </a>
+    </nav>
+
+    <script>
+        // ===== MOBILE RESPONSIVE CONTROLLER =====
+        class MobileResponsive {
+            constructor() {
+                this.sidebar = document.querySelector('aside.w-64');
+                this.overlay = document.getElementById('mobile-overlay') || this.createOverlay();
+                this.hamburger = document.querySelector('.mobile-hamburger') || this.createHamburger();
+                this.isOpen = false;
+                this.init();
+            }
+
+            createOverlay() {
+                const overlay = document.createElement('div');
+                overlay.id = 'mobile-overlay';
+                document.body.appendChild(overlay);
+                return overlay;
+            }
+
+            createHamburger() {
+                const btn = document.createElement('button');
+                btn.className = 'mobile-hamburger';
+                btn.setAttribute('aria-label', 'Toggle navigation menu');
+                btn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>';
+                
+                const header = document.querySelector('header');
+                if (header) {
+                    header.insertBefore(btn, header.firstChild);
+                }
+                return btn;
+            }
+
+            init() {
+                this.hamburger.addEventListener('click', () => this.toggleSidebar());
+                this.overlay.addEventListener('click', () => this.closeSidebar());
+
+                if (this.sidebar) {
+                    this.sidebar.querySelectorAll('a').forEach(link => {
+                        link.addEventListener('click', () => this.closeSidebar());
+                    });
+                }
+
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' && this.isOpen) this.closeSidebar();
+                });
+
+                window.addEventListener('resize', () => {
+                    if (window.innerWidth > 1024 && this.isOpen) {
+                        this.closeSidebar();
+                    }
+                });
+            }
+
+            toggleSidebar() {
+                this.isOpen ? this.closeSidebar() : this.openSidebar();
+            }
+
+            openSidebar() {
+                this.isOpen = true;
+                if (this.sidebar) this.sidebar.classList.add('mobile-open');
+                this.overlay.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
+
+            closeSidebar() {
+                this.isOpen = false;
+                if (this.sidebar) this.sidebar.classList.remove('mobile-open');
+                this.overlay.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        }
+
+        // Initialize Responsive UI on Load
+        document.addEventListener('DOMContentLoaded', () => {
+            if (document.querySelector('aside.w-64')) {
+                new MobileResponsive();
+            }
+        });
+
+        // Store the raw analysis result for export
+        let currentEmailAnalysis = null;
+        let currentUrlAnalysis = null;
+        let currentMode = 'email';
+        let currentDomain = '';
+
+        // Clock Update
+        setInterval(() => {
+            document.getElementById('clock-display').innerText = new Date().toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
+        }, 1000);
+
+        function logout() {
+            localStorage.removeItem('megasoc_token');
+            window.location.href = '/login';
+        }
+
+        // --- Tab Switching Logic ---
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active', 'text-cyber-neon'));
+            document.getElementById('email-tab').classList.add('hidden');
+            document.getElementById('url-tab').classList.add('hidden');
+
+            if (tabId === 'email-tab') {
+                document.getElementById('btn-email-tab').classList.add('active', 'text-cyber-neon');
+                document.getElementById('email-tab').classList.remove('hidden');
+                currentMode = 'email';
+            } else {
+                document.getElementById('btn-url-tab').classList.add('active', 'text-cyber-neon');
+                document.getElementById('url-tab').classList.remove('hidden');
+                currentMode = 'url';
+            }
+        }
+
+        // --- Drag and Drop Handling (Email) ---
+        const dropzone = document.getElementById('email-tab');
+        const fileInput = document.getElementById('file-input');
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropzone.addEventListener(eventName, () => dropzone.classList.add('dropzone-active'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, () => dropzone.classList.remove('dropzone-active'), false);
+        });
+
+        dropzone.addEventListener('drop', handleDrop, false);
+        fileInput.addEventListener('change', handleFileSelect, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files && files.length > 0) processFile(files[0]);
+        }
+
+        function handleFileSelect(e) {
+            const files = e.target.files;
+            if (files && files.length > 0) processFile(files[0]);
+        }
+
+        // --- Core Analysis Logic (Email) ---
+        async function processFile(file) {
+            showLoading("Analyzing Email Artifacts...", "Extracting headers, evaluating SPF/DKIM records, and scanning embedded payloads.");
+            document.getElementById('report-filename').innerText = file.name;
+
+            const token = localStorage.getItem('megasoc_token');
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/api/forensics/analyze_email', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+
+                if (response.status === 401 || response.status === 403) { logout(); return; }
+                if (!response.ok) throw new Error("Analysis failed server-side.");
+                
+                const data = await response.json();
+                currentEmailAnalysis = data;
+                renderEmailResults(data);
+
+            } catch (error) {
+                console.error("Phishing Analysis Error:", error);
+                alert("An error occurred during analysis. Ensure the backend is reachable.");
+                resetAnalyzer();
+            }
+        }
+
+        // --- Core Analysis Logic (URL) ---
+        async function scanUrl() {
+            let urlInput = document.getElementById('url-input').value.trim();
+            if (!urlInput) return;
+
+            let domainToScan = urlInput;
+            try {
+                const urlObj = new URL(urlInput);
+                domainToScan = urlObj.hostname;
+            } catch(e) {
+                // Handle cases where user just types "example.com"
+                domainToScan = urlInput.replace(/^(?:https?:\/\/)?(?:www\.)?/i, "").split('/')[0];
+            }
+
+            currentDomain = domainToScan;
+            document.getElementById('report-url').innerText = urlInput;
+            showLoading("Analyzing URL Infrastructure...", `Extracting DNS, SSL, and correlating with ThreatMiner and OTX.`);
+
+            const token = localStorage.getItem('megasoc_token');
+            try {
+                // Uses the ThreatIntel domain lookup built in main.py
+                const response = await fetch(`/api/threat_intel/lookup?indicator=${encodeURIComponent(domainToScan)}&type=domain`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.status === 401 || response.status === 403) { logout(); return; }
+                if (!response.ok) throw new Error("URL Analysis failed server-side.");
+                
+                const data = await response.json();
+                currentUrlAnalysis = data;
+                renderUrlResults(data);
+
+            } catch (error) {
+                console.error("URL Analysis Error:", error);
+                alert("An error occurred analyzing the URL. Ensure the backend Threat Intel module is running.");
+                resetAnalyzer();
+            }
+        }
+
+        // --- UI State Helpers ---
+        function showLoading(title, desc) {
+            document.getElementById('upload-section').style.display = 'none';
+            document.getElementById('loading-state').classList.remove('hidden');
+            document.getElementById('email-results-section').classList.add('hidden');
+            document.getElementById('url-results-section').classList.add('hidden');
+            
+            document.getElementById('loading-title').innerText = title;
+            document.getElementById('loading-desc').innerText = desc;
+            
+            if(currentMode === 'url') {
+                document.getElementById('loading-icon').className = "fas fa-globe-americas fa-spin text-5xl text-purple-400 mb-6";
+            } else {
+                document.getElementById('loading-icon').className = "fas fa-shield-virus fa-spin text-5xl text-orange-400 mb-6";
+            }
+        }
+
+        function resetAnalyzer() {
+            document.getElementById('email-results-section').classList.add('hidden');
+            document.getElementById('url-results-section').classList.add('hidden');
+            document.getElementById('loading-state').classList.add('hidden');
+            document.getElementById('upload-section').style.display = 'block';
+            document.getElementById('file-input').value = '';
+            document.getElementById('url-input').value = '';
+            currentEmailAnalysis = null;
+            currentUrlAnalysis = null;
+            currentDomain = '';
+            document.getElementById('btn-block-url').classList.add('hidden');
+        }
+
+        function exportReport(type) {
+            const data = type === 'email' ? currentEmailAnalysis : currentUrlAnalysis;
+            if (!data) return;
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+            const dlAnchorElem = document.createElement('a');
+            dlAnchorElem.setAttribute("href", dataStr);
+            dlAnchorElem.setAttribute("download", `megasoc_${type}_report.json`);
+            dlAnchorElem.click();
+        }
+
+        function triggerSOARBlock() {
+            if(currentDomain) {
+                alert(`Domain ${currentDomain} pushed to SOAR automation pipeline for immediate DNS sinkholing and firewall blocking.`);
+            }
+        }
+
+        // --- Render Email Results ---
+        function renderEmailResults(data) {
+            document.getElementById('loading-state').classList.add('hidden');
+            document.getElementById('email-results-section').classList.remove('hidden');
+
+            const heuristics = data.heuristics || {};
+            const meta = data.metadata || {};
+            const attachments = data.attachments || [];
+            
+            document.getElementById('meta-from').innerText = meta.sender || 'Unknown';
+            document.getElementById('meta-subject').innerText = meta.subject || 'No Subject';
+            document.getElementById('meta-date').innerText = meta.date || 'Unknown Date';
+
+            const score = data.total_risk_score || 0;
+            animateScore(score, 'email');
+
+            updateAuthBadge('spf', heuristics.spf_pass);
+            updateAuthBadge('dkim', heuristics.dkim_pass);
+            updateAuthBadge('dmarc', heuristics.dmarc_pass);
+
+            const grid = document.getElementById('heuristics-grid');
+            grid.innerHTML = '';
+            const heuristicLabels = {
+                "reply_to_mismatch": "Reply-To Mismatch (Spoofing)",
+                "freemail_sender": "Sent from Free Email Provider",
+                "multiple_received_hops": "Suspicious Routing Hops (>3)",
+                "missing_message_id": "Missing Message-ID Header",
+                "x_mailer_suspicious": "Suspicious X-Mailer (e.g., PHP)",
+                "urgency_keywords_present": "Urgent/Financial Language Detected",
+                "crypto_address_present": "Cryptocurrency Wallet Found",
+                "contains_iframe": "Hidden iFrames in HTML body",
+                "contains_zero_pixel": "Zero-Pixel Trackers Present",
+                "contains_base64_image": "Base64 Embedded Images",
+                "contains_script_tag": "JavaScript Tags in HTML",
+                "url_ip_obfuscation": "Direct IP Links (No Domain)",
+                "url_shortener_used": "URL Shortener Detected",
+                "executable_attachment": "Executable Attachment Found",
+                "multiple_attachments": "Multiple Attachments Included",
+                "encrypted_zip_heuristic": "Password Protected ZIP Detected"
+            };
+
+            for (const [key, label] of Object.entries(heuristicLabels)) {
+                if (heuristics[key] !== undefined) {
+                    const isFlagged = heuristics[key] === true;
+                    const styleClass = isFlagged ? 'heuristic-fail' : 'heuristic-pass';
+                    const icon = isFlagged ? 'fa-times-circle' : 'fa-check-circle';
+                    const text = isFlagged ? 'DETECTED' : 'CLEAN';
+
+                    grid.innerHTML += `
+                        <div class="border rounded p-3 text-sm flex justify-between items-center ${styleClass}">
+                            <span class="font-medium text-gray-300 break-words">${label}</span>
+                            <span class="font-bold text-xs shrink-0"><i class="fas ${icon} mr-1"></i> ${text}</span>
+                        </div>
+                    `;
+                }
+            }
+
+            const urlList = document.getElementById('url-list');
+            const urls = heuristics.urls_extracted || [];
+            document.getElementById('url-count').innerText = urls.length;
+            urlList.innerHTML = '';
+            if (urls.length > 0) {
+                urls.forEach(url => {
+                    urlList.innerHTML += `
+                        <div class="bg-cyber-950 border border-cyber-800 p-2 rounded flex justify-between items-center group">
+                            <span class="text-xs font-mono text-gray-400 truncate pr-4">${url}</span>
+                            <button onclick="navigator.clipboard.writeText('${url}')" class="text-cyber-neon hover:text-white transition-colors opacity-0 md:opacity-0 group-hover:opacity-100 touch-auto" title="Copy URL">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    `;
+                });
+            } else {
+                urlList.innerHTML = '<div class="text-gray-500 text-sm text-center py-8">No URLs found in email body.</div>';
+            }
+
+            const attList = document.getElementById('attachment-list');
+            document.getElementById('attachment-count').innerText = attachments.length;
+            attList.innerHTML = '';
+            if (attachments.length > 0) {
+                attachments.forEach(att => {
+                    const warnClass = att.is_executable ? 'border-orange-500/50 bg-orange-500/10 text-orange-400' : 'border-cyber-800 bg-cyber-950 text-gray-300';
+                    const icon = att.is_executable ? 'fa-exclamation-triangle' : 'fa-file';
+                    
+                    attList.innerHTML += `
+                        <div class="border rounded p-3 flex flex-col gap-2 ${warnClass}">
+                            <div class="flex justify-between items-start">
+                                <div class="flex items-center gap-2 font-semibold text-sm">
+                                    <i class="fas ${icon}"></i> 
+                                    <span class="truncate max-w-[200px]" title="${att.name}">${att.name}</span>
+                                </div>
+                                <span class="text-xs text-gray-500 shrink-0">${(att.size / 1024).toFixed(1)} KB</span>
+                            </div>
+                            <div class="text-[10px] font-mono mt-1 grid grid-cols-1 gap-1 text-gray-400">
+                                <div class="break-all"><span class="text-gray-600">MD5:</span> ${att.md5}</div>
+                                <div class="break-all"><span class="text-gray-600">SHA256:</span> ${att.sha256}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+            } else {
+                attList.innerHTML = '<div class="text-gray-500 text-sm text-center py-8">No attachments found.</div>';
+            }
+        }
+
+        // --- Render URL Results ---
+        function renderUrlResults(data) {
+            document.getElementById('loading-state').classList.add('hidden');
+            document.getElementById('url-results-section').classList.remove('hidden');
+
+            // Domain Structure
+            const struct = data.domain_structure || {};
+            document.getElementById('url-subdomain').innerText = struct.subdomain || 'None';
+            document.getElementById('url-domain').innerText = struct.domain || '--';
+            document.getElementById('url-tld').innerText = struct.suffix || '--';
+
+            // Calculate Risk Score heuristically based on returned data + OTX
+            let riskScore = 0;
+            const isHomo = data.is_homograph_suspect === true;
+            if (isHomo) riskScore += 60;
+            
+            const hasSslError = data.ssl && data.ssl.error;
+            if (hasSslError) riskScore += 25;
+            
+            const dns = data.dns_records || {};
+            const hasA = dns['A'] && dns['A'].length > 0;
+            if (!hasA) riskScore += 15;
+            
+            // Suspicious TLDs
+            const badTlds = ['xyz', 'top', 'pw', 'tk', 'ml', 'ga', 'cf', 'gq'];
+            if (struct.suffix && badTlds.includes(struct.suffix.toLowerCase())) riskScore += 20;
+
+            // XDR Update: Integrate AlienVault OTX & ThreatMiner insights to score
+            if (data.alienvault_otx && data.alienvault_otx.pulse_count > 0) {
+                document.getElementById('otx-pulse-count').innerText = data.alienvault_otx.pulse_count;
+                document.getElementById('otx-pulse-count').classList.add('text-orange-400');
+                riskScore += Math.min(40, data.alienvault_otx.pulse_count * 10);
+                
+                if (data.alienvault_otx.malware_families !== undefined) {
+                    document.getElementById('otx-malware-hits').innerText = data.alienvault_otx.malware_families;
+                    if(data.alienvault_otx.malware_families > 0) {
+                        document.getElementById('otx-malware-hits').classList.add('text-cyber-alert');
+                        riskScore += 50;
+                    }
+                }
+            } else {
+                document.getElementById('otx-pulse-count').innerText = '0';
+                document.getElementById('otx-malware-hits').innerText = '0';
+                document.getElementById('otx-pulse-count').className = 'text-white font-bold';
+                document.getElementById('otx-malware-hits').className = 'text-white font-bold';
+            }
+
+            animateScore(riskScore, 'url');
+
+            // Homograph UI
+            const homoCont = document.getElementById('homograph-container');
+            const homoIcon = document.getElementById('homo-icon');
+            const homoBadge = document.getElementById('homo-badge');
+            
+            if (isHomo) {
+                homoCont.className = "mt-6 p-4 rounded-lg border flex items-center justify-between border-cyber-alert/50 bg-cyber-alert/10";
+                homoIcon.className = "fas fa-exclamation-triangle text-2xl text-cyber-alert shrink-0";
+                homoBadge.className = "px-3 py-1 rounded text-xs font-bold uppercase tracking-widest border border-cyber-alert text-cyber-alert bg-cyber-950 ml-2 whitespace-nowrap";
+                homoBadge.innerText = "HOMOGLYPH";
+            } else {
+                homoCont.className = "mt-6 p-4 rounded-lg border flex items-center justify-between border-cyber-safe/30 bg-cyber-safe/10";
+                homoIcon.className = "fas fa-shield-check text-2xl text-cyber-safe shrink-0";
+                homoBadge.className = "px-3 py-1 rounded text-xs font-bold uppercase tracking-widest border border-cyber-safe text-cyber-safe bg-cyber-950 ml-2 whitespace-nowrap";
+                homoBadge.innerText = "SAFE";
+            }
+
+            // DNS Records
+            const dnsList = document.getElementById('dns-list');
+            dnsList.innerHTML = '';
+            ['A', 'MX', 'TXT', 'NS'].forEach(type => {
+                const records = dns[type] || [];
+                if (records.length > 0) {
+                    let itemsHtml = records.map(r => `<div class="text-gray-300 ml-4 break-all">- ${r}</div>`).join('');
+                    dnsList.innerHTML += `
+                        <div class="bg-cyber-950 p-3 rounded border border-cyber-800">
+                            <span class="text-cyber-neon font-bold">${type} Records</span>
+                            <div class="mt-2 space-y-1 text-xs">${itemsHtml}</div>
+                        </div>
+                    `;
+                }
+            });
+            if(dnsList.innerHTML === '') {
+                dnsList.innerHTML = '<div class="text-gray-500 text-center py-4">No DNS telemetry recovered.</div>';
+            }
+
+            // SSL Cert
+            const sslDiv = document.getElementById('ssl-details');
+            sslDiv.innerHTML = '';
+            if (data.ssl) {
+                if (data.ssl.error) {
+                    sslDiv.innerHTML = `
+                        <div class="flex items-center gap-3 text-orange-400 bg-orange-400/10 p-4 rounded border border-orange-400/30">
+                            <i class="fas fa-exclamation-triangle text-xl shrink-0"></i>
+                            <div>
+                                <h4 class="font-bold text-sm">SSL Handshake Failed</h4>
+                                <p class="text-xs text-gray-400 mt-1">${data.ssl.error}</p>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    sslDiv.innerHTML = `
+                        <div class="bg-cyber-950 p-4 rounded border border-cyber-800 space-y-3 text-sm">
+                            <div class="flex flex-col md:flex-row md:justify-between border-b border-cyber-800 pb-2">
+                                <span class="text-gray-500 font-bold uppercase text-xs">Issuer Organization</span>
+                                <span class="text-cyber-safe font-mono md:text-right">${data.ssl.issuer || 'Unknown'}</span>
+                            </div>
+                            <div class="flex flex-col md:flex-row md:justify-between border-b border-cyber-800 pb-2">
+                                <span class="text-gray-500 font-bold uppercase text-xs">Valid From</span>
+                                <span class="text-gray-300 font-mono md:text-right">${data.ssl.not_before || '--'}</span>
+                            </div>
+                            <div class="flex flex-col md:flex-row md:justify-between">
+                                <span class="text-gray-500 font-bold uppercase text-xs">Valid Until</span>
+                                <span class="text-gray-300 font-mono md:text-right">${data.ssl.not_after || '--'}</span>
+                            </div>
+                        </div>
+                    `;
+                }
+            } else {
+                sslDiv.innerHTML = '<div class="text-gray-500 text-center py-4 text-sm">No SSL Data Available</div>';
+            }
+        }
+
+        // --- Shared Utilities ---
+        function updateAuthBadge(type, passed) {
+            const badge = document.getElementById(`badge-${type}`);
+            badge.innerText = `${type.toUpperCase()}: ${passed ? 'PASS' : 'FAIL'}`;
+            if (passed) {
+                badge.className = `px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border heuristic-pass`;
+            } else {
+                badge.className = `px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border heuristic-fail`;
+            }
+        }
+
+        function animateScore(finalScore, type) {
+            const prefix = type === 'email' ? 'email' : 'url';
+            const scoreEl = document.getElementById(`${prefix}-risk-score`);
+            const labelEl = document.getElementById(`${prefix}-risk-label`);
+            const glowEl = document.getElementById(`${prefix}-score-glow`);
+            const blockBtn = document.getElementById('btn-block-url'); // Only applies to URL
+            
+            let current = 0;
+            const target = Math.min(finalScore, 100);
+            
+            const interval = setInterval(() => {
+                if (current >= target) {
+                    clearInterval(interval);
+                    scoreEl.innerText = target;
+                    
+                    if (target < 30) {
+                        scoreEl.className = 'text-6xl font-display font-bold text-cyber-safe';
+                        labelEl.innerText = 'Clean / Low Risk';
+                        labelEl.className = 'text-sm font-bold mt-3 px-4 py-1 rounded-full uppercase tracking-widest relative z-10 border heuristic-pass';
+                        glowEl.className = 'absolute inset-0 opacity-20 bg-cyber-safe transition-colors duration-1000';
+                        if (blockBtn) blockBtn.classList.add('hidden');
+                    } else if (target < 70) {
+                        scoreEl.className = 'text-6xl font-display font-bold text-orange-400';
+                        labelEl.innerText = 'Suspicious';
+                        labelEl.className = 'text-sm font-bold mt-3 px-4 py-1 rounded-full uppercase tracking-widest relative z-10 border heuristic-warn';
+                        glowEl.className = 'absolute inset-0 opacity-20 bg-orange-400 transition-colors duration-1000';
+                        if (blockBtn) blockBtn.classList.remove('hidden');
+                    } else {
+                        scoreEl.className = 'text-6xl font-display font-bold text-cyber-alert';
+                        labelEl.innerText = 'Malicious';
+                        labelEl.className = 'text-sm font-bold mt-3 px-4 py-1 rounded-full uppercase tracking-widest relative z-10 border heuristic-fail';
+                        glowEl.className = 'absolute inset-0 opacity-20 bg-cyber-alert transition-colors duration-1000';
+                        if (blockBtn) blockBtn.classList.remove('hidden');
+                    }
+                } else {
+                    current += 2;
+                    scoreEl.innerText = current;
+                }
+            }, 20);
+        }
+
+    </script>
+</body>
+</html>

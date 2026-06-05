@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XDR Data Lake - MegaSOC</title>
+    <meta name="description" content="MegaSOC Unified Security Dashboard - SIEM & XDR">
+    
+    <!-- Auth Guard -->
+    <script>
+        const token = localStorage.getItem('megasoc_token');
+        if (!token) {
+            window.location.href = '/login';
+        }
+    </script>
+
+    <!-- Tailwind CSS for Enterprise Styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Premium Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts: Inter & Space Grotesk -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { 
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Space Grotesk', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace']
+                    },
+                    colors: {
+                        cyber: {
+                            950: '#040914',
+                            900: '#0B1120',
+                            800: '#1E293B',
+                            accent: '#3B82F6',
+                            neon: '#06B6D4',
+                            alert: '#EF4444',
+                            safe: '#10B981',
+                            warning: '#F59E0B',
+                            purple: '#8B5CF6'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Scrollbar for a premium feel */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0B1120; }
+        ::-webkit-scrollbar-thumb { background: #1E293B; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3B82F6; }
+        
+        .glass-panel {
+            background: rgba(11, 17, 32, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(30, 41, 59, 0.8);
+        }
+        
+        .log-row:hover {
+            background-color: rgba(30, 41, 59, 0.4);
+            cursor: pointer;
+        }
+
+        /* Syntax highlighting classes for JSON payload */
+        .json-key { color: #06B6D4; }
+        .json-string { color: #10B981; }
+        .json-number { color: #F59E0B; }
+        .json-boolean { color: #8B5CF6; }
+        .json-null { color: #EF4444; }
+    </style>
+</head>
+<body class="bg-cyber-950 text-gray-300 font-sans antialiased h-screen overflow-hidden flex selection:bg-cyber-accent selection:text-white">
+
+    <!-- Sidebar Navigation -->
+    <aside class="w-64 glass-panel border-r border-cyber-800 flex flex-col z-20 h-full flex-shrink-0 transition-all duration-300 relative">
+        <!-- Logo -->
+        <div class="h-20 flex items-center px-6 border-b border-cyber-800">
+            <a href="/" class="flex-shrink-0 flex items-center gap-3 group cursor-pointer">
+                <!-- Megadriod Logo with Fallback -->
+                <img src="logo.png" alt="Megadriod Logo" class="h-10 w-auto group-hover:scale-105 transition-transform" 
+                     onerror="this.onerror=null; this.outerHTML='<div class=\'w-10 h-10 rounded-lg bg-gradient-to-br from-cyber-accent to-cyber-neon flex items-center justify-center text-white text-xl shadow-[0_0_15px_rgba(6,182,212,0.5)]\'><i class=\'fas fa-shield-virus\'></i></div>'">
+                <span class="font-display font-bold text-2xl tracking-tight text-white">
+                    Mega<span class="text-white">SOC</span>
+                </span>
+            </a>
+        </div>
+
+        <!-- Navigation Links -->
+        <nav class="flex-1 overflow-y-auto py-6 px-4 space-y-1.5">
+            <p class="px-2 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Platform Core</p>
+            
+            <a href="/dashboard" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-cyber-800/50 hover:text-white font-medium transition-colors">
+                <i class="fas fa-chart-line w-5 text-center"></i> Dashboard Overview
+            </a>
+            <a href="/agent-management" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-cyber-800/50 hover:text-white font-medium transition-colors">
+                <i class="fas fa-server w-5 text-center"></i> Endpoint Agents
+            </a>
+            
+            <p class="px-2 text-xs font-semibold text-gray-500 uppercase tracking-wider mt-6 mb-2">Security Labs</p>
+            
+            <!-- Active State on SIEM & Logs -->
+            <a href="/siem-logs" class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-cyber-accent/10 text-cyber-neon border border-cyber-accent/20 font-medium transition-colors">
+                <i class="fas fa-radar w-5 text-center"></i> SIEM & Logs
+            </a>
+            <a href="/incident-response" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-cyber-800/50 hover:text-white font-medium transition-colors">
+                <i class="fas fa-shield-cross w-5 text-center"></i> Incident Response
+            </a>
+            <a href="/threat-intel" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-cyber-800/50 hover:text-white font-medium transition-colors">
+                <i class="fas fa-earth-americas w-5 text-center"></i> Threat Intelligence
+            </a>
+            <a href="/soar-automation" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-cyber-800/50 hover:text-white font-medium transition-colors">
+                <i class="fas fa-wand-magic-sparkles w-5 text-center"></i> SOAR Automation
+            </a>
+            <a href="/phishing-analyzer" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-cyber-800/50 hover:text-white font-medium transition-colors">
+                <i class="fas fa-envelope-shield w-5 text-center"></i> Email & BEC
+            </a>
+        </nav>
+
+        <!-- User & System Status -->
+        <div class="p-4 border-t border-cyber-800">
+            <div class="flex items-center justify-between mb-4 px-2">
+                <div class="flex items-center gap-2 text-xs">
+                    <div class="w-2 h-2 rounded-full bg-cyber-safe animate-pulse"></div>
+                    <span class="text-gray-400">System Online</span>
+                </div>
+                <span class="text-xs text-gray-500" id="clock-display">00:00:00</span>
+            </div>
+            
+            <button onclick="logout()" class="w-full flex items-center justify-center gap-2 py-2 px-4 border border-cyber-800 hover:bg-cyber-800 rounded-md text-sm font-medium text-gray-300 transition-colors">
+                <i class="fas fa-sign-out-alt"></i> Terminate Session
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col h-full relative overflow-hidden bg-cyber-950">
+        <!-- Top Navbar -->
+        <header class="h-20 glass-panel border-b border-cyber-800 flex items-center justify-between px-8 z-10">
+            <h1 class="text-2xl font-display font-bold text-white flex items-center gap-3">
+                <i class="fas fa-radar text-cyber-neon"></i> Threat Detection & XDR Data Lake
+            </h1>
+            
+            <div class="flex items-center gap-6">
+                <!-- Notifications -->
+                <button class="relative text-gray-400 hover:text-white transition-colors">
+                    <i class="fas fa-bell text-xl"></i>
+                </button>
+                
+                <!-- Admin Profile -->
+                <div class="flex items-center gap-3 pl-6 border-l border-cyber-800">
+                    <div class="w-9 h-9 rounded-full bg-gradient-to-r from-cyber-accent to-cyber-neon flex items-center justify-center text-white font-bold">
+                        AD
+                    </div>
+                    <div class="hidden md:block">
+                        <p class="text-sm font-semibold text-white leading-tight">Admin User</p>
+                        <p class="text-xs text-cyber-neon">Enterprise Admin</p>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dashboard Content (Split Pane for Table & Details) -->
+        <div class="flex-1 flex flex-col p-6 overflow-hidden relative">
+            
+            <!-- Search & Filter Bar (MQL Supported) -->
+            <div class="glass-panel p-4 rounded-xl mb-6 flex flex-col md:flex-row gap-4 items-center justify-between shrink-0">
+                <div class="flex-1 w-full relative">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <i class="fas fa-terminal text-cyber-neon"></i>
+                    </div>
+                    <input type="text" id="search-query" 
+                        class="w-full bg-cyber-950 border border-cyber-800 rounded-lg py-3 pl-11 pr-4 text-sm font-mono text-white placeholder-gray-600 focus:outline-none focus:border-cyber-accent focus:ring-1 focus:ring-cyber-accent transition-all"
+                        placeholder="MQL> search event_id=4688 | stats count by process_name..."
+                        onkeypress="if(event.key === 'Enter') executeSearch()">
+                </div>
+                
+                <div class="flex items-center gap-3 w-full md:w-auto">
+                    
+                    <button onclick="showMQLHelp()" class="bg-cyber-900 border border-cyber-800 hover:bg-cyber-800 text-gray-400 hover:text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center gap-2" title="MQL Guide">
+                        <i class="fas fa-code"></i> <span class="hidden md:inline text-sm">MQL Guide</span>
+                    </button>
+
+                    <button onclick="executeSearch()" id="search-btn" class="bg-cyber-accent hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors flex items-center gap-2">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                    
+                    <button onclick="toggleLiveStream()" id="live-stream-btn" class="bg-transparent border border-cyber-800 hover:border-cyber-safe text-gray-300 hover:text-cyber-safe font-semibold py-3 px-4 rounded-lg transition-colors flex items-center gap-2">
+                        <i class="fas fa-play" id="stream-icon"></i> <span id="stream-text">Live Stream</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Content Area (Table + Modal panel) -->
+            <div class="flex-1 flex gap-6 overflow-hidden">
+                
+                <!-- Log Table Container -->
+                <div class="flex-1 glass-panel rounded-xl border border-cyber-800 flex flex-col overflow-hidden relative">
+                    
+                    <!-- Loading State Overlay -->
+                    <div id="table-loading" class="absolute inset-0 bg-cyber-950/80 z-10 flex flex-col items-center justify-center backdrop-blur-sm hidden">
+                        <i class="fas fa-circle-notch fa-spin text-4xl text-cyber-neon mb-3"></i>
+                        <p class="text-sm font-mono text-gray-400">Querying Data Lake...</p>
+                    </div>
+
+                    <!-- Table Header Context -->
+                    <div class="bg-cyber-900 border-b border-cyber-800 p-3 flex justify-between items-center shrink-0">
+                        <h3 class="text-white font-semibold flex items-center gap-2 text-sm" id="table-title">
+                            <i class="fas fa-list"></i> Raw Telemetry Events
+                        </h3>
+                        <span class="text-xs text-gray-500 font-mono" id="result-count">0 Results Returned</span>
+                    </div>
+
+                    <!-- Scrollable Table Body -->
+                    <div class="flex-1 overflow-auto">
+                        <table class="w-full text-left text-sm whitespace-nowrap">
+                            <thead class="sticky top-0 bg-cyber-900 shadow-md z-10" id="table-header">
+                                <tr class="text-gray-400 font-medium uppercase tracking-wider text-xs border-b border-cyber-800">
+                                    <th class="px-6 py-3">Timestamp (UTC)</th>
+                                    <th class="px-6 py-3">Severity</th>
+                                    <th class="px-6 py-3">Agent ID</th>
+                                    <th class="px-6 py-3">Event Source</th>
+                                    <th class="px-6 py-3">Event ID</th>
+                                    <th class="px-6 py-3 w-full">Raw Data / Process</th>
+                                </tr>
+                            </thead>
+                            <tbody id="logs-tbody" class="font-mono text-xs text-gray-300 divide-y divide-cyber-800/50">
+                                <!-- Initial Empty State -->
+                                <tr id="empty-state">
+                                    <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                                        <div class="flex flex-col items-center justify-center">
+                                            <i class="fas fa-database text-4xl mb-4 text-cyber-800"></i>
+                                            <p class="text-base font-sans">Awaiting Query Execution</p>
+                                            <p class="text-xs mt-1">Press Search to fetch the latest enterprise telemetry.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <!-- Rows will be populated here by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Log Details Panel (Hidden by default, slides in/takes space when a row is clicked) -->
+                <div id="log-details-panel" class="w-1/3 glass-panel rounded-xl border border-cyber-800 flex flex-col overflow-hidden hidden transition-all duration-300 shrink-0">
+                    <div class="bg-cyber-900 border-b border-cyber-800 p-3 flex justify-between items-center shrink-0">
+                        <h3 class="text-white font-semibold flex items-center gap-2 text-sm">
+                            <i class="fas fa-microscope text-cyber-accent"></i> Forensic Details
+                        </h3>
+                        <button onclick="closeDetails()" class="text-gray-500 hover:text-white transition-colors">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="flex-1 overflow-y-auto p-4 custom-scrollbar">
+                        <div id="details-header" class="mb-6 pb-4 border-b border-cyber-800/50">
+                            <!-- Populated by JS -->
+                        </div>
+                        
+                        <div class="mb-2 flex justify-between items-center">
+                            <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Parsed JSON Payload</h4>
+                            <button onclick="copyJson()" class="text-cyber-neon hover:text-white text-xs transition-colors" title="Copy JSON">
+                                <i class="fas fa-copy"></i> Copy
+                            </button>
+                        </div>
+                        
+                        <div class="bg-cyber-950 p-4 rounded border border-cyber-800 overflow-x-auto">
+                            <pre id="json-viewer" class="text-xs font-mono text-gray-300 m-0"></pre>
+                        </div>
+                        
+                        <div class="mt-6 flex justify-end gap-3">
+                            <button onclick="triggerSOAR()" class="bg-cyber-safe/10 border border-cyber-safe/30 text-cyber-safe hover:bg-cyber-safe hover:text-cyber-950 py-2 px-4 rounded text-xs font-bold transition-all">
+                                <i class="fas fa-bolt"></i> Trigger Automations
+                            </button>
+                            <button class="bg-cyber-alert/10 border border-cyber-alert/30 text-cyber-alert hover:bg-cyber-alert hover:text-white py-2 px-4 rounded text-xs font-bold transition-all">
+                                <i class="fas fa-ban"></i> Block IP
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Global State
+        let currentLogsData = [];
+        let liveStreamInterval = null;
+        let isLive = false;
+
+        // Clock Update
+        setInterval(() => {
+            document.getElementById('clock-display').innerText = new Date().toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
+        }, 1000);
+
+        function logout() {
+            localStorage.removeItem('megasoc_token');
+            window.location.href = '/login';
+        }
+
+        // MQL Help Modal
+        function showMQLHelp() {
+            alert("Mega Query Language (MQL) Guide:\n\n1. Filter by Key-Value:\n   search event_id=4688\n   search source_ip='192.168.1.5'\n\n2. Free Text Search:\n   search powershell.exe\n\n3. Statistical Aggregation:\n   search failed_login | stats count by source_ip");
+        }
+
+        // Search Execution
+        async function executeSearch() {
+            const query = document.getElementById('search-query').value;
+            await fetchLogs(query);
+        }
+
+        // Toggle Live Stream
+        function toggleLiveStream() {
+            const btn = document.getElementById('live-stream-btn');
+            const icon = document.getElementById('stream-icon');
+            const text = document.getElementById('stream-text');
+
+            isLive = !isLive;
+
+            if (isLive) {
+                btn.classList.remove('border-cyber-800', 'text-gray-300', 'hover:border-cyber-safe', 'hover:text-cyber-safe');
+                btn.classList.add('border-cyber-safe', 'text-cyber-safe', 'bg-cyber-safe/10', 'animate-pulse');
+                icon.classList.remove('fa-play');
+                icon.classList.add('fa-stop');
+                text.innerText = "Streaming Active";
+                
+                // Execute immediately, then set interval
+                executeSearch();
+                liveStreamInterval = setInterval(executeSearch, 5000); // Poll every 5s
+            } else {
+                btn.classList.add('border-cyber-800', 'text-gray-300', 'hover:border-cyber-safe', 'hover:text-cyber-safe');
+                btn.classList.remove('border-cyber-safe', 'text-cyber-safe', 'bg-cyber-safe/10', 'animate-pulse');
+                icon.classList.remove('fa-stop');
+                icon.classList.add('fa-play');
+                text.innerText = "Live Stream";
+                
+                clearInterval(liveStreamInterval);
+            }
+        }
+
+        // API Call to FastAPI Backend (MQL Endpoint)
+        async function fetchLogs(query = '') {
+            const token = localStorage.getItem('megasoc_token');
+            const loadingOverlay = document.getElementById('table-loading');
+            
+            // Only show heavy loading overlay if not live streaming
+            if (!isLive) loadingOverlay.classList.remove('hidden');
+
+            try {
+                // New MQL Endpoint implementation
+                const response = await fetch(`/api/mql/search`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ query: query })
+                });
+
+                if (response.status === 401 || response.status === 403) {
+                    logout();
+                    return;
+                }
+
+                if (!response.ok) throw new Error("Failed to fetch logs");
+                
+                const result = await response.json();
+                
+                if (result.type === 'stats') {
+                    renderStats(result.data || []);
+                } else {
+                    currentLogsData = result.data || []; 
+                    renderTable(result.data || []);
+                }
+
+            } catch (error) {
+                console.error("SIEM Search Error:", error);
+                document.getElementById('logs-tbody').innerHTML = `
+                    <tr>
+                        <td colspan="6" class="px-6 py-8 text-center text-cyber-alert">
+                            <i class="fas fa-exclamation-triangle mb-2 text-2xl"></i><br>
+                            Error communicating with the data lake.
+                        </td>
+                    </tr>`;
+            } finally {
+                loadingOverlay.classList.add('hidden');
+            }
+        }
+
+        // Render Standard Table Rows
+        function renderTable(logs) {
+            const thead = document.getElementById('table-header');
+            const tbody = document.getElementById('logs-tbody');
+            const countDisplay = document.getElementById('result-count');
+            
+            document.getElementById('table-title').innerHTML = '<i class="fas fa-list"></i> Raw Telemetry Events';
+            countDisplay.innerText = `${logs.length} Results Returned`;
+            
+            // Restore standard headers
+            thead.innerHTML = `
+                <tr class="text-gray-400 font-medium uppercase tracking-wider text-xs border-b border-cyber-800">
+                    <th class="px-6 py-3">Timestamp (UTC)</th>
+                    <th class="px-6 py-3">Severity</th>
+                    <th class="px-6 py-3">Agent ID</th>
+                    <th class="px-6 py-3">Event Source</th>
+                    <th class="px-6 py-3">Event ID</th>
+                    <th class="px-6 py-3 w-full">Raw Data / Process</th>
+                </tr>
+            `;
+
+            tbody.innerHTML = '';
+
+            if (logs.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                            <div class="flex flex-col items-center justify-center">
+                                <i class="fas fa-search text-3xl mb-3 text-cyber-800"></i>
+                                <p class="text-sm font-sans">No events match your criteria.</p>
+                            </div>
+                        </td>
+                    </tr>`;
+                return;
+            }
+
+            logs.forEach((log, index) => {
+                // Determine Severity Formatting
+                let sevColor = 'text-cyber-safe border-cyber-safe/30 bg-cyber-safe/10';
+                let sevText = 'LOW';
+                
+                if (log.severity >= 4 && log.severity <= 6) {
+                    sevColor = 'text-cyber-warning border-cyber-warning/30 bg-cyber-warning/10';
+                    sevText = 'MEDIUM';
+                } else if (log.severity >= 7 && log.severity <= 8) {
+                    sevColor = 'text-orange-400 border-orange-400/30 bg-orange-400/10';
+                    sevText = 'HIGH';
+                } else if (log.severity >= 9) {
+                    sevColor = 'text-cyber-alert border-cyber-alert/30 bg-cyber-alert/10';
+                    sevText = 'CRITICAL';
+                }
+
+                // Format timestamp
+                const timeStr = new Date(log.timestamp).toISOString().replace('T', ' ').substring(0, 19);
+                
+                // Truncate raw data for display
+                const displayData = log.raw_data ? log.raw_data.substring(0, 80) + (log.raw_data.length > 80 ? '...' : '') : 'N/A';
+
+                const tr = document.createElement('tr');
+                tr.className = 'log-row border-b border-cyber-800/50 transition-colors';
+                tr.onclick = () => openDetails(index);
+                
+                tr.innerHTML = `
+                    <td class="px-6 py-3 whitespace-nowrap text-gray-400">${timeStr}</td>
+                    <td class="px-6 py-3 whitespace-nowrap">
+                        <span class="px-2 py-1 rounded text-[10px] font-bold tracking-wider border ${sevColor}">${sevText} (${log.severity})</span>
+                    </td>
+                    <td class="px-6 py-3 whitespace-nowrap text-cyber-neon">${log.agent_id ? log.agent_id.substring(0, 12) + '...' : 'System'}</td>
+                    <td class="px-6 py-3 whitespace-nowrap text-gray-300">${log.event_source || 'Unknown'}</td>
+                    <td class="px-6 py-3 whitespace-nowrap font-bold text-white">${log.event_id || '-'}</td>
+                    <td class="px-6 py-3 text-gray-400 truncate max-w-[300px]" title="${log.raw_data}">${displayData}</td>
+                `;
+                
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Render Statistical Aggregation (MQL "stats" response)
+        function renderStats(statsData) {
+            const thead = document.getElementById('table-header');
+            const tbody = document.getElementById('logs-tbody');
+            const countDisplay = document.getElementById('result-count');
+            
+            document.getElementById('table-title').innerHTML = '<i class="fas fa-chart-pie"></i> Statistical Aggregation';
+            countDisplay.innerText = `${statsData.length} Aggregation Groups`;
+            
+            // Adjust Headers for Stats
+            thead.innerHTML = `
+                <tr class="text-gray-400 font-medium uppercase tracking-wider text-xs border-b border-cyber-800">
+                    <th class="px-6 py-3 w-3/4">Aggregation Key</th>
+                    <th class="px-6 py-3 w-1/4">Event Count</th>
+                </tr>
+            `;
+            
+            tbody.innerHTML = '';
+            
+            if (statsData.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="2" class="px-6 py-12 text-center text-gray-500">
+                            <div class="flex flex-col items-center justify-center">
+                                <i class="fas fa-chart-pie text-3xl mb-3 text-cyber-800"></i>
+                                <p class="text-sm font-sans">No statistical data matches your query.</p>
+                            </div>
+                        </td>
+                    </tr>`;
+                return;
+            }
+
+            // Sort descending by count
+            statsData.sort((a, b) => b.count - a.count);
+
+            statsData.forEach(stat => {
+                const tr = document.createElement('tr');
+                tr.className = 'border-b border-cyber-800/50 transition-colors hover:bg-cyber-800/30';
+                
+                tr.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-cyber-neon font-bold text-sm">${stat.key}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-3 py-1 rounded bg-cyber-900 border border-cyber-800 text-white font-mono">${stat.count.toLocaleString()}</span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            
+            // Auto hide details panel if open during stats rendering
+            closeDetails();
+        }
+
+        // Open Detail Panel
+        function openDetails(index) {
+            const log = currentLogsData[index];
+            if (!log) return;
+
+            const panel = document.getElementById('log-details-panel');
+            const header = document.getElementById('details-header');
+            const jsonViewer = document.getElementById('json-viewer');
+
+            panel.classList.remove('hidden');
+
+            // Set Header Details
+            header.innerHTML = `
+                <div class="flex justify-between items-start mb-4">
+                    <h4 class="text-white font-bold font-sans text-lg">Event ID: ${log.event_id || 'N/A'}</h4>
+                    <span class="px-2 py-1 rounded bg-cyber-800 text-xs font-mono text-gray-300">${log.event_source}</span>
+                </div>
+                <div class="grid grid-cols-2 gap-4 text-xs font-mono text-gray-400">
+                    <div><strong class="text-gray-500 uppercase">Agent ID:</strong><br><span class="text-cyber-neon">${log.agent_id || 'System'}</span></div>
+                    <div><strong class="text-gray-500 uppercase">Timestamp:</strong><br><span class="text-white">${new Date(log.timestamp).toISOString()}</span></div>
+                    ${log.mitre_technique ? `<div><strong class="text-gray-500 uppercase">MITRE ATT&CK:</strong><br><span class="text-cyber-alert">${log.mitre_technique}</span></div>` : ''}
+                    ${log.source_ip ? `<div><strong class="text-gray-500 uppercase">Source IP:</strong><br><span class="text-orange-400">${log.source_ip}</span></div>` : ''}
+                </div>
+                <div class="mt-4 pt-4 border-t border-cyber-800">
+                    <strong class="text-gray-500 uppercase text-xs">Raw Text:</strong>
+                    <p class="text-gray-300 mt-1 break-words">${log.raw_data || 'No raw text available.'}</p>
+                </div>
+            `;
+
+            // Set JSON Viewer with syntax highlighting
+            const jsonObj = log.parsed_json || { "raw_data": log.raw_data, "severity": log.severity, "system_id": log.id };
+            const prettyJson = syntaxHighlight(JSON.stringify(jsonObj, null, 2));
+            jsonViewer.innerHTML = prettyJson;
+            
+            // Store raw string for the copy button
+            jsonViewer.setAttribute('data-raw-json', JSON.stringify(jsonObj, null, 2));
+        }
+
+        function closeDetails() {
+            document.getElementById('log-details-panel').classList.add('hidden');
+        }
+
+        // Copy JSON payload to clipboard
+        function copyJson() {
+            const rawJson = document.getElementById('json-viewer').getAttribute('data-raw-json');
+            navigator.clipboard.writeText(rawJson).then(() => {
+                alert("JSON Payload copied to clipboard."); // In a real app, use a custom toast notification
+            });
+        }
+        
+        function triggerSOAR() {
+            alert("SOAR Automation Pipeline Triggered. Playbook execution started."); // Simple feedback for demo
+        }
+
+        // Utility: JSON Syntax Highlighting
+        function syntaxHighlight(json) {
+            json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+                var cls = 'json-number';
+                if (/^"/.test(match)) {
+                    if (/:$/.test(match)) {
+                        cls = 'json-key';
+                    } else {
+                        cls = 'json-string';
+                    }
+                } else if (/true|false/.test(match)) {
+                    cls = 'json-boolean';
+                } else if (/null/.test(match)) {
+                    cls = 'json-null';
+                }
+                return '<span class="' + cls + '">' + match + '</span>';
+            });
+        }
+
+        // Run initial fetch on load
+        document.addEventListener('DOMContentLoaded', () => {
+            executeSearch();
+        });
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Incident Response - MegaSOC</title>
+    <meta name="description" content="MegaSOC Unified Security Dashboard - Active IR">
+    
+    <!-- Auth Guard -->
+    <script>
+        const token = localStorage.getItem('megasoc_token');
+        if (!token) {
+            window.location.href = '/login';
+        }
+    </script>
+
+    <!-- Tailwind CSS for Enterprise Styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Premium Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts: Inter & Space Grotesk -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { 
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Space Grotesk', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace']
+                    },
+                    colors: {
+                        cyber: {
+                            950: '#040914',
+                            900: '#0B1120',
+                            800: '#1E293B',
+                            accent: '#3B82F6',
+                            neon: '#06B6D4',
+                            alert: '#EF4444',
+                            safe: '#10B981',
+                            warning: '#F59E0B',
+                            purple: '#8B5CF6'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0B1120; }
+        ::-webkit-scrollbar-thumb { background: #1E293B; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3B82F6; }
+        
+        .glass-panel {
+            background: rgba(11, 17, 32, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(30, 41, 59, 0.8);
+        }
+        
+        /* C2 Terminal Animation */
+        .cursor-blink { animation: blink 1s step-end infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+        
+        .agent-card.active { border-color: #06B6D4; background-color: rgba(6, 182, 212, 0.1); }
+        .agent-card:hover:not(.active) { border-color: #3B82F6; }
+    </style>
+</head>
+<body class="bg-cyber-950 text-gray-300 font-sans antialiased h-screen overflow-hidden flex selection:bg-cyber-accent selection:text-white">
+
+    <!-- Sidebar Navigation -->
+    <aside class="w-64 glass-panel border-r border-cyber-800 flex flex-col z-20 h-full flex-shrink-0 transition-all duration-300 relative">
+        <!-- Logo -->
+        <div class="h-20 flex items-center px-6 border-b border-cyber-800">
+            <a href="/" class="flex-shrink-0 flex items-center gap-3 group cursor-pointer">
+                <!-- Megadriod Logo with Fallback -->
+                <img src="logo.png" alt="Megadriod Logo" class="h-10 w-auto group-hover:scale-105 transition-transform" 
+                     onerror="this.onerror=null; this.outerHTML='<div class=\'w-10 h-10 rounded-lg bg-gradient-to-br from-cyber-accent to-cyber-neon flex items-center justify-center text-white text-xl shadow-[0_0_15px_rgba(6,182,212,0.5)]\'><i class=\'fas fa-shield-virus\'></i></div>'">
+                <span class="font-display font-bold text-2xl tracking-tight text-white">
+                    Mega<span class="text-white">SOC</span>
+                </span>
+            </a>
+        </div>
+
+        <!-- Navigation Links -->
+        <nav class="flex-1 overflow-y-auto py-6 px-4 space-y-1.5 custom-scrollbar">
+            <p class="px-2 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Platform Core</p>
+            <a href="/dashboard" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-cyber-800/50 hover:text-white font-medium transition-colors">
+                <i class="fas fa-chart-line w-5 text-center"></i> Dashboard Overview
+            </a>
+            <a href="/agent-management" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-cyber-800/50 hover:text-white font-medium transition-colors">
+                <i class="fas fa-server w-5 text-center"></i> Endpoint Agents
+            </a>
+            
+            <p class="px-2 text-xs font-semibold text-gray-500 uppercase tracking-wider mt-6 mb-2">Security Labs</p>
+            <a href="/siem-logs" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-cyber-800/50 hover:text-white font-medium transition-colors">
+                <i class="fas fa-radar w-5 text-center"></i> SIEM & Logs
+            </a>
+            <!-- Active State on IR -->
+            <a href="/incident-response" class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-cyber-accent/10 text-cyber-neon border border-cyber-accent/20 font-medium transition-colors">
+                <i class="fas fa-shield-cross w-5 text-center"></i> Incident Response
+            </a>
+            <a href="/threat-intel" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-cyber-800/50 hover:text-white font-medium transition-colors">
+                <i class="fas fa-earth-americas w-5 text-center"></i> Threat Intelligence
+            </a>
+            <a href="/soar-automation" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-cyber-800/50 hover:text-white font-medium transition-colors">
+                <i class="fas fa-wand-magic-sparkles w-5 text-center"></i> SOAR Automation
+            </a>
+            <a href="/phishing-analyzer" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-cyber-800/50 hover:text-white font-medium transition-colors">
+                <i class="fas fa-envelope-shield w-5 text-center"></i> Email & BEC
+            </a>
+        </nav>
+
+        <!-- User & System Status -->
+        <div class="p-4 border-t border-cyber-800">
+            <div class="flex items-center justify-between mb-4 px-2">
+                <div class="flex items-center gap-2 text-xs">
+                    <div class="w-2 h-2 rounded-full bg-cyber-safe animate-pulse"></div>
+                    <span class="text-gray-400">System Online</span>
+                </div>
+                <span class="text-xs text-gray-500" id="clock-display">00:00:00</span>
+            </div>
+            <button onclick="logout()" class="w-full flex items-center justify-center gap-2 py-2 px-4 border border-cyber-800 hover:bg-cyber-800 rounded-md text-sm font-medium text-gray-300 transition-colors">
+                <i class="fas fa-sign-out-alt"></i> Terminate Session
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col h-full relative overflow-hidden bg-cyber-950">
+        <!-- Top Navbar -->
+        <header class="h-20 glass-panel border-b border-cyber-800 flex items-center justify-between px-8 z-10 shrink-0">
+            <h1 class="text-2xl font-display font-bold text-white flex items-center gap-3">
+                <i class="fas fa-shield-cross text-cyber-alert"></i> Active Incident Response
+            </h1>
+            
+            <div class="flex items-center gap-6">
+                <!-- Notifications -->
+                <button class="relative text-gray-400 hover:text-white transition-colors">
+                    <i class="fas fa-bell text-xl"></i>
+                </button>
+                <!-- Admin Profile -->
+                <div class="flex items-center gap-3 pl-6 border-l border-cyber-800">
+                    <div class="w-9 h-9 rounded-full bg-gradient-to-r from-cyber-alert to-orange-500 flex items-center justify-center text-white font-bold">
+                        AD
+                    </div>
+                    <div class="hidden md:block">
+                        <p class="text-sm font-semibold text-white leading-tight">Admin User</p>
+                        <p class="text-xs text-cyber-alert">IR Commander</p>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- IR Workspace -->
+        <div class="flex-1 flex overflow-hidden">
+            
+            <!-- Target Selection Panel (Left) -->
+            <div class="w-80 glass-panel border-r border-cyber-800 flex flex-col h-full z-10 shrink-0">
+                <div class="p-4 border-b border-cyber-800">
+                    <h3 class="text-sm font-bold text-white uppercase tracking-wider mb-3">Target Selection</h3>
+                    <div class="relative">
+                        <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
+                        <input type="text" id="agent-search" placeholder="Search Hostname or IP..." 
+                            class="w-full bg-cyber-900 border border-cyber-800 rounded-md py-2 pl-9 pr-3 text-sm text-white focus:outline-none focus:border-cyber-accent">
+                    </div>
+                </div>
+                
+                <div class="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar" id="agent-list">
+                    <!-- Populated by JS -->
+                    <div class="text-center py-8 text-gray-500" id="agent-loading">
+                        <i class="fas fa-spinner fa-spin mb-2 text-xl"></i>
+                        <p class="text-xs">Fetching Active Assets...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Command & Control Console (Right) -->
+            <div class="flex-1 flex flex-col h-full bg-cyber-950 overflow-hidden relative">
+                
+                <!-- Target Header -->
+                <div class="p-6 border-b border-cyber-800 glass-panel flex justify-between items-start shrink-0 z-20">
+                    <div>
+                        <div class="flex items-center gap-3 mb-1">
+                            <h2 class="text-2xl font-bold text-white" id="selected-host">No Target Selected</h2>
+                            <span id="selected-status" class="hidden px-2 py-0.5 rounded text-xs font-bold tracking-wider border"></span>
+                        </div>
+                        <p class="text-sm text-gray-400 font-mono" id="selected-details">Select an endpoint from the left to initiate C2 communication.</p>
+                    </div>
+                    <div id="isolation-badge" class="hidden">
+                        <span class="px-3 py-1.5 rounded-full bg-cyber-alert/20 border border-cyber-alert/50 text-cyber-alert text-xs font-bold uppercase tracking-widest flex items-center gap-2 animate-pulse">
+                            <i class="fas fa-lock"></i> Network Isolated
+                        </span>
+                    </div>
+                </div>
+
+                <!-- C2 Interactive Area -->
+                <div class="flex-1 overflow-y-auto p-6 flex flex-col gap-8 custom-scrollbar relative" id="c2-workspace" style="display: none;">
+                    
+                    <!-- Command Matrix (Grid of actions categorized) -->
+                    <div class="space-y-8">
+                        
+                        <!-- Category: Process & Memory -->
+                        <div>
+                            <h3 class="text-gray-500 text-xs font-bold uppercase tracking-widest mb-3 border-b border-cyber-800 pb-2">Process & Memory Control</h3>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                <button onclick="prepareCommand('kill_process')" class="bg-cyber-900 border border-cyber-800 hover:border-orange-500 hover:bg-orange-500/10 text-gray-300 hover:text-orange-500 rounded-lg p-3 text-left transition-all group">
+                                    <i class="fas fa-skull mb-2 text-lg text-gray-500 group-hover:text-orange-500 transition-colors"></i><h4 class="text-sm font-bold">Kill Process</h4>
+                                </button>
+                                <button onclick="prepareCommand('suspend_process')" class="bg-cyber-900 border border-cyber-800 hover:border-yellow-500 hover:bg-yellow-500/10 text-gray-300 hover:text-yellow-500 rounded-lg p-3 text-left transition-all group">
+                                    <i class="fas fa-pause-circle mb-2 text-lg text-gray-500 group-hover:text-yellow-500 transition-colors"></i><h4 class="text-sm font-bold">Suspend Process</h4>
+                                </button>
+                                <button onclick="prepareCommand('resume_process')" class="bg-cyber-900 border border-cyber-800 hover:border-cyber-safe hover:bg-cyber-safe/10 text-gray-300 hover:text-cyber-safe rounded-lg p-3 text-left transition-all group">
+                                    <i class="fas fa-play-circle mb-2 text-lg text-gray-500 group-hover:text-cyber-safe transition-colors"></i><h4 class="text-sm font-bold">Resume Process</h4>
+                                </button>
+                                <button onclick="prepareCommand('get_process_tree')" class="bg-cyber-900 border border-cyber-800 hover:border-cyber-neon hover:bg-cyber-neon/10 text-gray-300 hover:text-cyber-neon rounded-lg p-3 text-left transition-all group">
+                                    <i class="fas fa-sitemap mb-2 text-lg text-gray-500 group-hover:text-cyber-neon transition-colors"></i><h4 class="text-sm font-bold">Get Process Tree</h4>
+                                </button>
+                                <button onclick="prepareCommand('dump_process_memory')" class="bg-cyber-900 border border-cyber-800 hover:border-purple-500 hover:bg-purple-500/10 text-gray-300 hover:text-purple-400 rounded-lg p-3 text-left transition-all group">
+                                    <i class="fas fa-memory mb-2 text-lg text-gray-500 group-hover:text-purple-400 transition-colors"></i><h4 class="text-sm font-bold">Dump RAM</h4>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Category: Network & Firewall -->
+                        <div>
+                            <h3 class="text-gray-500 text-xs font-bold uppercase tracking-widest mb-3 border-b border-cyber-800 pb-2">Network & Firewall</h3>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                <button onclick="prepareCommand('isolate_network')" class="bg-cyber-900 border border-cyber-800 hover:border-cyber-alert hover:bg-cyber-alert/10 text-gray-300 hover:text-cyber-alert rounded-lg p-3 text-left transition-all group">
+                                    <i class="fas fa-network-wired mb-2 text-lg text-gray-500 group-hover:text-cyber-alert transition-colors"></i><h4 class="text-sm font-bold">Isolate Host</h4>
+                                </button>
+                                <button onclick="prepareCommand('unisolate_network')" class="bg-cyber-900 border border-cyber-800 hover:border-gray-500 hover:bg-gray-800 text-gray-300 hover:text-white rounded-lg p-3 text-left transition-all group">
+                                    <i class="fas fa-unlock mb-2 text-lg text-gray-500 group-hover:text-white transition-colors"></i><h4 class="text-sm font-bold">Remove Isolation</h4>
+                                </button>
+                                <button onclick="prepareCommand('block_ip_firewall')" class="bg-cyber-900 border border-cyber-800 hover:border-cyber-alert hover:bg-cyber-alert/10 text-gray-300 hover:text-cyber-alert rounded-lg p-3 text-left transition-all group">
+                                    <i class="fas fa-ban mb-2 text-lg text-gray-500 group-hover:text-cyber-alert transition-colors"></i><h4 class="text-sm font-bold">Block IP (FW)</h4>
+                                </button>
+                                <button onclick="prepareCommand('get_active_connections')" class="bg-cyber-900 border border-cyber-800 hover:border-cyber-safe hover:bg-cyber-safe/10 text-gray-300 hover:text-cyber-safe rounded-lg p-3 text-left transition-all group">
+                                    <i class="fas fa-globe-americas mb-2 text-lg text-gray-500 group-hover:text-cyber-safe transition-colors"></i><h4 class="text-sm font-bold">Netstat Dump</h4>
+                                </button>
+                                <button onclick="prepareCommand('get_dns_cache')" class="bg-cyber-900 border border-cyber-800 hover:border-cyber-neon hover:bg-cyber-neon/10 text-gray-300 hover:text-cyber-neon rounded-lg p-3 text-left transition-all group">
+                                    <i class="fas fa-server mb-2 text-lg text-gray-500 group-hover:text-cyber-neon transition-colors"></i><h4 class="text-sm font-bold">DNS Cache</h4>
+                                </button>
+                                <button onclick="prepareCommand('flush_dns')" class="bg-cyber-900 border border-cyber-800 hover:border-orange-400 hover:bg-orange-400/10 text-gray-300 hover:text-orange-400 rounded-lg p-3 text-left transition-all group">
+                                    <i class="fas fa-broom mb-2 text-lg text-gray-500 group-hover:text-orange-400 transition-colors"></i><h4 class="text-sm font-bold">Flush DNS</h4>
+                                </button>
+                                <button onclick="prepareCommand('get_routing_table')" class="bg-cyber-900 border border-cyber-800 hover:border-cyber-accent hover:bg-cyber-accent/10 text-gray-300 hover:text-cyber-accent rounded-lg p-3 text-left transition-all group">
+                                    <i class="fas fa-route mb-2 text-lg text-gray-500 group-hover:text-cyber-accent transition-colors"></i><h4 class="text-sm font-bold">Routing Table</h4>
+                                </button>
+                                <button onclick="prepareCommand('get_arp_cache')" class="bg-cyber-900 border border-cyber-800 hover:border-purple-400 hover:bg-purple-400/10 text-gray-300 hover:text-purple-400 rounded-lg p-3 text-left transition-all group">
+                                    <i class="fas fa-address-book mb-2 text-lg text-gray-500 group-hover:text-purple-400 transition-colors"></i><h4 class="text-sm font-bold">ARP Cache</h4>
+                                </button>
+                                <button onclick="prepareCommand('clear_arp_cache')" class="bg-cyber-900 border border-cyber-800 hover:border-orange-400 hover:bg-orange-400/10 text-gray-300 hover:text-orange-400 rounded-lg p-3 text-left transition-all group">
+                                    <i class="fas fa-eraser mb-2 text-lg text-gray-500 group-hover:text-orange-400 transition-colors"></i><h4 class="text-sm font-bold">Clear ARP</h4>
+                                </button>
+                                <button onclick="prepareCommand('get_firewall_rules')" class="bg-cyber-900 border border-cyber-800 hover:border-cyber-safe hover:bg-cyber-safe/10 text-gray-300 hover:text-cyber-safe rounded-lg p-3 text-left transition-all group">
+                                    <i class="fas fa-shield-virus mb-2 text-lg text-gray-500 group-hover:text-cyber-safe transition-colors"></i><h4 class="text-sm font-bold">Firewall Rules</h4>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Category: Persistence & Registry -->
+                        <div>
+                            <h3 class="text-gray-500 text-xs font-bold uppercase tracking-widest mb-3 border-b border-cyber-800 pb-2">Persistence Hunting & Registry</h3>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                <button onclick="prepareCommand('get_autoruns')" class="bg-cyber-900 border border-cyber-800 hover:border-cyber-safe hover:bg-cyber-safe/10 text-gray-300 hover:text-cyber-safe rounded-lg p-3 text-left transition-all group">
+                                    <i class="fas fa-rocket mb-2 text-lg text-gray-500 group-hover:text-cyber-safe transition-colors"></i><h4 class="text-sm font-bold">List Autoruns</h4>
+                                </button>
+                                <button onclick="prepareCommand('query_registry')" class="bg-cyber-900 border border-cyber-800 hover:border-cyber-neon hover:bg-cyber-neon/10 text-gray-300 hover:text-cyber-neon rounded-lg p-3 text-left transition-all group">
+                                    <i class="fas fa-folder-tree mb-2 text-lg text-gray-500 group-hover:text-cyber-neon transition-colors"></i><h4 class="text-sm font-bold">Query Registry</h4>
+                                </button>
+                                <button onclick="prepareCommand('delete_registry_key')" class="bg-cyber-900 border border-cyber-800 hover:border-orange-500 hover:bg-orange-500/10 text-gray-300 hover:text-orange-500 rounded-lg p-3 text-left transition-all group">
+                                    <i class="fas fa-trash-alt mb-2 text-lg text-gray-500 group-hover:text-orange-500 transition-colors"></i><h4 class="text-sm font-bold">Delete Reg Key</h4>
+                                </button>
+                                <button onclick="prepareCommand('get_scheduled_tasks')" class="bg-cyber-900 border border-cyber-800 hover:border-cyber-accent hover:bg-cyber-accent/10 text-gray-300 hover:text-cyber-accent rounded-lg p-3 text-left transition-all group">
+                                    <i class="fas fa-clock mb-2 text-lg text-gray-500 group-hover:text-cyber-accent transition-colors"></i><h4 class="text-sm font-bold">Scheduled Tasks</h4>
+                                </button>
+                                <button onclick="prepareCommand('delete_scheduled_task')" class="bg-cyber-900 border border-cyber-800 hover:border-orange-500 hover:bg-orange-500/10 text-gray-300 hover:text-orange-500 rounded-lg p-3 text-left transition-all group">
+                                    <i class="fas fa-calendar-times mb-2 text-lg text-gray-500 group-hover:text-orange-500 transition-colors"></i><h4 class="text-sm font-bold">Delete Task</h4>
+                                </button>
+                                <button onclick="prepareCommand('get_wmi_persistence')" class="bg-cyber-900 border border-cyber-800 hover:border-purple-400 hover:bg-purple-400/10 text-gray-300 hover:text-purple-400 rounded-lg p-3 text-left transition-all group">
+                                    <i class="fab fa-windows mb-2 text-lg text-gray-500 group-hover:text-purple-400 transition-colors"></i><h4 class="text-sm font-bold">WMI Consumers</h4>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Category: Session & User Management -->
+                        <div>
+                            <h3 class="text-gray-500 text-xs font-bold uppercase tracking-widest mb-3 border-b border-cyber-800 pb-2">Session & User Management</h3>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                <button onclick="prepareCommand('get_local_users')" class="bg-cyber-900 border border-cyber-800 hover:border-cyber-safe hover:bg-cyber-safe/10 text-gray-300 hover:text-cyber-safe rounded-lg p-3 text-left transition-all group">
+                                    <i class="fas fa-users mb-2 text-lg text-gray-500 group-hover:text-cyber-safe transition-colors"></i><h4 class="text-sm font-bold">Local Users</h4>
+                                </button>
+                                <button onclick="prepareCommand('disable_local_user')" class="bg-cyber-900 border border-cyber-800 hover:border-orange-500 hover:bg-orange-500/10 text-gray-300 hover:text-orange-500 rounded-lg p-3 text-left transition-all group">
+                                    <i class="fas fa-user-slash mb-2 text-lg text-gray-500 group-hover:text-orange-500 transition-colors"></i><h4 class="text-sm font-bold">Disable User</h4>
+                                </button>
+                                <button onclick="prepareCommand('get_local_groups')" class="bg-cyber-900 border border-cyber-800 hover:border-cyber-accent hover:bg-cyber-accent/10 text-gray-300 hover:text-cyber-accent rounded-lg p-3 text-left transition-all group">
+                                    <i class="fas fa-users-cog mb-2 text-lg text-gray-500 group-hover:text-cyber-accent transition-colors"></i><h4 class="text-sm font-bold">Local Groups</h4>
+                                </button>
+                                <button onclick="prepareCommand('lock_user_session')" class="bg-cyber-900 border border-cyber-800 hover:border-yellow-500 hover:bg-yellow-500/10 text-gray-300 hover:text-yellow-500 rounded-lg p-3 text-left transition-all group">
+                                    <i class="fas fa-lock mb-2 text-lg text-gray-500 group-hover:text-yellow-500 transition-colors"></i><h4 class="text-sm font-bold">Lock Session</h4>
+                                </button>
+                                <button onclick="prepareCommand('logoff_user')" class="bg-cyber-900 border border-cyber-800 hover:border-orange-400 hover:bg-orange-400/10 text-gray-300 hover:text-orange-400 rounded-lg p-3 text-left transition-all group">
+                                    <i class="fas fa-sign-out-alt mb-2 text-lg text-gray-500 group-hover:text-orange-400 transition-colors"></i><h4 class="text-sm font-bold">Force Logoff</h4>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Category: System & Services -->
+                        <div>
+                            <h3 class="text-gray-500 text-xs font-bold uppercase tracking-widest mb-3 border-b border-cyber-800 pb-2">System & Services</h3>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                <button onclick="prepareCommand('get_services')" class="bg-cyber-900 border border-cyber-800 hover:border-cyber-neon hover:bg-cyber-neon/10 text-gray-300 hover:text-cyber-neon rounded-lg p-3 text-left transition-all group">
+                                    <i class="fas fa-cogs mb-2 text-lg text-gray-500 group-hover:text-cyber-neon transition-colors"></i><h4 class="text-sm font-bold">List Services</h4>
+                                </button>
+                                <button onclick="prepareCommand('stop_service')" class="bg-cyber-900 border border-cyber-800 hover:border-orange-500 hover:bg-orange-500/10 text-gray-300 hover:text-orange-500 rounded-lg p-3 text-left transition-all group">
+                                    <i class="fas fa-stop-circle mb-2 text-lg text-gray-500 group-hover:text-orange-500 transition-colors"></i><h4 class="text-sm font-bold">Stop Service</h4>
+                                </button>
+                                <button onclick="prepareCommand('start_service')" class="bg-cyber-900 border border-cyber-800 hover:border-cyber-safe hover:bg-cyber-safe/10 text-gray-300 hover:text-cyber-safe rounded-lg p-3 text-left transition-all group">
+                                    <i class="fas fa-play-circle mb-2 text-lg text-gray-500 group-hover:text-cyber-safe transition-colors"></i><h4 class="text-sm font-bold">Start Service</h4>
+                                </button>
+                                <button onclick="prepareCommand('get_system_info')" class="bg-cyber-900 border border-cyber-800 hover:border-purple-400 hover:bg-purple-400/10 text-gray-300 hover:text-purple-400 rounded-lg p-3 text-left transition-all group">
+                                    <i class="fas fa-info-circle mb-2 text-lg text-gray-500 group-hover:text-purple-400 transition-colors"></i><h4 class="text-sm font-bold">System Info</h4>
+                                </button>
+                                <button onclick="prepareCommand('reboot_host')" class="bg-cyber-900 border border-cyber-800 hover:border-cyber-alert hover:bg-cyber-alert/10 text-gray-300 hover:text-cyber-alert rounded-lg p-3 text-left transition-all group">
+                                    <i class="fas fa-power-off mb-2 text-lg text-gray-500 group-hover:text-cyber-alert transition-colors"></i><h4 class="text-sm font-bold">Reboot Host</h4>
+                                </button>
+                                <button onclick="prepareCommand('shutdown_host')" class="bg-cyber-900 border border-cyber-800 hover:border-cyber-alert hover:bg-cyber-alert/10 text-gray-300 hover:text-cyber-alert rounded-lg p-3 text-left transition-all group">
+                                    <i class="fas fa-plug mb-2 text-lg text-gray-500 group-hover:text-cyber-alert transition-colors"></i><h4 class="text-sm font-bold">Shutdown Host</h4>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Category: File System & Execution -->
+                        <div>
+                            <h3 class="text-gray-500 text-xs font-bold uppercase tracking-widest mb-3 border-b border-cyber-800 pb-2">File System & Execution</h3>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                <button onclick="prepareCommand('fetch_file')" class="bg-cyber-900 border border-cyber-800 hover:border-cyber-accent hover:bg-cyber-accent/10 text-gray-300 hover:text-cyber-accent rounded-lg p-3 text-left transition-all group">
+                                    <i class="fas fa-file-download mb-2 text-lg text-gray-500 group-hover:text-cyber-accent transition-colors"></i><h4 class="text-sm font-bold">Fetch File</h4>
+                                </button>
+                                <button onclick="prepareCommand('upload_file')" class="bg-cyber-900 border border-cyber-800 hover:border-purple-500 hover:bg-purple-500/10 text-gray-300 hover:text-purple-500 rounded-lg p-3 text-left transition-all group">
+                                    <i class="fas fa-file-upload mb-2 text-lg text-gray-500 group-hover:text-purple-500 transition-colors"></i><h4 class="text-sm font-bold">Upload File</h4>
+                                </button>
+                                <button onclick="prepareCommand('delete_file')" class="bg-cyber-900 border border-cyber-800 hover:border-orange-500 hover:bg-orange-500/10 text-gray-300 hover:text-orange-500 rounded-lg p-3 text-left transition-all group">
+                                    <i class="fas fa-trash mb-2 text-lg text-gray-500 group-hover:text-orange-500 transition-colors"></i><h4 class="text-sm font-bold">Delete File</h4>
+                                </button>
+                                <button onclick="prepareCommand('quarantine_file')" class="bg-cyber-900 border border-cyber-800 hover:border-yellow-500 hover:bg-yellow-500/10 text-gray-300 hover:text-yellow-500 rounded-lg p-3 text-left transition-all group">
+                                    <i class="fas fa-box-archive mb-2 text-lg text-gray-500 group-hover:text-yellow-500 transition-colors"></i><h4 class="text-sm font-bold">Quarantine File</h4>
+                                </button>
+                                <button onclick="prepareCommand('execute_powershell')" class="bg-cyber-900 border border-cyber-800 hover:border-cyber-neon hover:bg-cyber-neon/10 text-gray-300 hover:text-cyber-neon rounded-lg p-3 text-left transition-all group">
+                                    <i class="fas fa-terminal mb-2 text-lg text-gray-500 group-hover:text-cyber-neon transition-colors"></i><h4 class="text-sm font-bold">Run PowerShell</h4>
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Parameter Execution Builder (Dynamic) -->
+                    <div id="execution-builder" class="hidden bg-cyber-900 border border-cyber-800 rounded-lg p-5 shrink-0 z-30 sticky bottom-0 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-white font-bold flex items-center gap-2">
+                                <i class="fas fa-terminal text-cyber-neon"></i> Execute Payload: <span id="builder-cmd-name" class="text-cyber-neon font-mono"></span>
+                            </h3>
+                            <button onclick="cancelCommand()" class="text-gray-500 hover:text-white"><i class="fas fa-times"></i></button>
+                        </div>
+                        
+                        <div id="builder-params" class="space-y-4 mb-4">
+                            <!-- Dynamic inputs injected here -->
+                        </div>
+                        
+                        <button id="dispatch-btn" onclick="dispatchCommand()" class="bg-cyber-alert hover:bg-red-600 text-white font-bold py-2.5 px-6 rounded text-sm w-full transition-colors flex items-center justify-center gap-2">
+                            <i class="fas fa-satellite-dish"></i> Dispatch Task to Agent
+                        </button>
+                    </div>
+
+                    <!-- Live Terminal Output -->
+                    <div class="min-h-[250px] shrink-0 flex flex-col bg-[#02040A] rounded-lg border border-cyber-800 shadow-[inset_0_0_20px_rgba(0,0,0,1)] overflow-hidden">
+                        <div class="bg-cyber-900 border-b border-cyber-800 px-4 py-2 flex justify-between items-center shrink-0">
+                            <div class="flex gap-2">
+                                <div class="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50"></div>
+                                <div class="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/50"></div>
+                                <div class="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50"></div>
+                            </div>
+                            <span class="text-xs text-gray-500 font-mono">MegaSOC C2 Interface</span>
+                        </div>
+                        <div class="flex-1 p-4 font-mono text-sm overflow-y-auto text-gray-300 leading-relaxed custom-scrollbar" id="terminal-output">
+                            <div class="text-gray-500 mb-2"># Establishing secure connection to MegaSOC backend...</div>
+                            <div class="text-cyber-safe mb-4"># Authentication successful. Standing by for command input.</div>
+                        </div>
+                    </div>
+                    
+                </div>
+
+                <!-- Empty State (No Target Selected) -->
+                <div id="empty-state" class="flex-1 flex flex-col items-center justify-center text-gray-500 p-6 text-center">
+                    <i class="fas fa-crosshairs text-6xl mb-6 text-cyber-800"></i>
+                    <h2 class="text-xl font-display text-gray-400 mb-2">Awaiting Target Selection</h2>
+                    <p class="max-w-md">Select an endpoint from the left panel to establish a bi-directional command channel. All actions are logged immutably for compliance.</p>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Global State
+        let activeAgentId = null;
+        let activeAgentName = null;
+        let selectedCommand = null;
+
+        // Clock Update
+        setInterval(() => {
+            document.getElementById('clock-display').innerText = new Date().toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
+        }, 1000);
+
+        function logout() {
+            localStorage.removeItem('megasoc_token');
+            window.location.href = '/login';
+        }
+
+        // --- 1. Agent Fetching Logic ---
+        async function loadAgents() {
+            const token = localStorage.getItem('megasoc_token');
+            const listDiv = document.getElementById('agent-list');
+
+            try {
+                // Fetching from the SIEM stats endpoint which aggregates active agents
+                const response = await fetch('/api/siem/stats', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.status === 401) { logout(); return; }
+                const data = await response.json();
+                
+                listDiv.innerHTML = '';
+                
+                if (data.top_agents && data.top_agents.length > 0) {
+                    data.top_agents.forEach(a => {
+                        const isOnline = true; // Assume online for top_agents right now
+                        const statusColor = isOnline ? 'bg-cyber-safe' : 'bg-gray-600';
+                        const agentId = a.agent || 'unknown';
+                        
+                        // Create Card
+                        const div = document.createElement('div');
+                        div.className = `agent-card p-3 rounded-lg border border-cyber-800 bg-cyber-900 cursor-pointer transition-colors`;
+                        div.onclick = () => selectAgent(agentId, div);
+                        
+                        div.innerHTML = `
+                            <div class="flex justify-between items-start">
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-desktop text-gray-400"></i>
+                                    <span class="font-bold text-white text-sm truncate w-32">${agentId}</span>
+                                </div>
+                                <div class="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                                    <div class="w-1.5 h-1.5 rounded-full ${statusColor}"></div>
+                                    ${isOnline ? 'Online' : 'Offline'}
+                                </div>
+                            </div>
+                            <div class="mt-2 flex justify-between text-xs text-gray-500 font-mono">
+                                <span>Events: ${a.count}</span>
+                                <span>ID: ${agentId.substring(0,6)}..</span>
+                            </div>
+                        `;
+                        listDiv.appendChild(div);
+                    });
+                } else {
+                    listDiv.innerHTML = `<div class="text-center py-8 text-gray-500 text-sm">No active endpoints detected.</div>`;
+                }
+
+            } catch (error) {
+                console.error("Agent Fetch Error:", error);
+                listDiv.innerHTML = `<div class="text-center py-8 text-cyber-alert text-sm">Error connecting to C2 Server.</div>`;
+            }
+        }
+
+        // --- 2. C2 UI Interaction ---
+        function selectAgent(agentId, element) {
+            activeAgentId = agentId;
+            activeAgentName = agentId;
+
+            // UI updates for selection
+            document.querySelectorAll('.agent-card').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+
+            document.getElementById('empty-state').style.display = 'none';
+            document.getElementById('c2-workspace').style.display = 'flex';
+            
+            document.getElementById('selected-host').innerText = `Target: ${agentId}`;
+            document.getElementById('selected-details').innerText = `UUID: ${agentId} | Status: Online | Ready for Tasking`;
+            
+            const statBadge = document.getElementById('selected-status');
+            statBadge.classList.remove('hidden');
+            statBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold tracking-wider border border-cyber-safe/50 bg-cyber-safe/10 text-cyber-safe';
+            statBadge.innerText = 'ONLINE';
+
+            appendToTerminal(`\n<span class="text-cyber-neon">[SYS]</span> Established C2 channel with <span class="text-white">${agentId}</span>...`);
+        }
+
+        // --- 3. Command Preparation (Dynamic Forms) ---
+        const commandParams = {
+            // Process & Memory
+            'kill_process': [{ id: 'pid', label: 'Process ID (PID)', type: 'number', placeholder: 'e.g., 4512' }],
+            'suspend_process': [{ id: 'pid', label: 'Process ID (PID)', type: 'number', placeholder: 'e.g., 4512' }],
+            'resume_process': [{ id: 'pid', label: 'Process ID (PID)', type: 'number', placeholder: 'e.g., 4512' }],
+            'get_process_tree': [],
+            'dump_process_memory': [{ id: 'pid', label: 'Process ID (PID)', type: 'number', placeholder: 'e.g., 4512' }],
+            
+            // Network & Firewall
+            'isolate_network': [],
+            'unisolate_network': [],
+            'block_ip_firewall': [{ id: 'ip', label: 'IP Address', type: 'text', placeholder: 'e.g., 192.168.1.100' }],
+            'get_active_connections': [],
+            'get_dns_cache': [],
+            'flush_dns': [],
+            'get_routing_table': [],
+            'get_arp_cache': [],
+            'clear_arp_cache': [],
+            'get_firewall_rules': [],
+
+            // Persistence Hunting & Registry
+            'get_autoruns': [],
+            'query_registry': [{ id: 'regkey', label: 'Registry Key Path', type: 'text', placeholder: 'HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Run' }],
+            'delete_registry_key': [
+                { id: 'regkey', label: 'Registry Key Path', type: 'text', placeholder: 'HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Run' },
+                { id: 'value', label: 'Value Name', type: 'text', placeholder: 'MaliciousKey' }
+            ],
+            'get_scheduled_tasks': [],
+            'delete_scheduled_task': [{ id: 'task_name', label: 'Task Name', type: 'text', placeholder: 'e.g., MaliciousTask' }],
+            'get_wmi_persistence': [],
+
+            // Session & User Management
+            'get_local_users': [],
+            'disable_local_user': [{ id: 'username', label: 'Username', type: 'text', placeholder: 'e.g., Guest' }],
+            'get_local_groups': [],
+            'lock_user_session': [],
+            'logoff_user': [],
+
+            // System & Services
+            'get_services': [],
+            'stop_service': [{ id: 'service', label: 'Service Name', type: 'text', placeholder: 'e.g., wuauserv' }],
+            'start_service': [{ id: 'service', label: 'Service Name', type: 'text', placeholder: 'e.g., wuauserv' }],
+            'get_system_info': [],
+            'reboot_host': [],
+            'shutdown_host': [],
+
+            // File System & Execution
+            'fetch_file': [{ id: 'filepath', label: 'Absolute File Path', type: 'text', placeholder: 'C:\\Windows\\System32\\config\\SAM' }],
+            'upload_file': [
+                { id: 'filepath', label: 'Destination File Path', type: 'text', placeholder: 'C:\\Temp\\payload.exe' },
+                { id: 'b64_data', label: 'Base64 Encoded Payload', type: 'text', placeholder: 'e.g., TVqQAAMAAAAEAAAA...' }
+            ],
+            'delete_file': [{ id: 'filepath', label: 'Absolute File Path', type: 'text', placeholder: 'C:\\Temp\\malware.exe' }],
+            'quarantine_file': [{ id: 'filepath', label: 'Absolute File Path', type: 'text', placeholder: 'C:\\Temp\\malware.exe' }],
+            'execute_powershell': [{ id: 'script', label: 'PowerShell Command', type: 'text', placeholder: 'Get-Process | Where-Object {$_.CPU -gt 100}' }]
+        };
+
+        function prepareCommand(cmdName) {
+            selectedCommand = cmdName;
+            const builder = document.getElementById('execution-builder');
+            const paramContainer = document.getElementById('builder-params');
+            
+            document.getElementById('builder-cmd-name').innerText = cmdName;
+            paramContainer.innerHTML = '';
+            
+            const params = commandParams[cmdName] || [];
+            if (params.length === 0) {
+                paramContainer.innerHTML = '<p class="text-sm text-gray-400 italic">This command requires no additional parameters.</p>';
+            } else {
+                params.forEach(p => {
+                    paramContainer.innerHTML += `
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">${p.label}</label>
+                            <input type="${p.type}" id="param-${p.id}" placeholder="${p.placeholder}" class="w-full bg-cyber-950 border border-cyber-800 rounded py-2 px-3 text-sm text-white focus:outline-none focus:border-cyber-neon font-mono">
+                        </div>
+                    `;
+                });
+            }
+            
+            builder.classList.remove('hidden');
+            appendToTerminal(`<span class="text-gray-500">[INFO]</span> Prepared payload: ${cmdName}`);
+            
+            // Scroll to builder
+            builder.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }
+
+        function cancelCommand() {
+            document.getElementById('execution-builder').classList.add('hidden');
+            selectedCommand = null;
+        }
+
+        // --- 4. Dispatching Command to Backend ---
+        async function dispatchCommand() {
+            if (!activeAgentId || !selectedCommand) return;
+            
+            const btn = document.getElementById('dispatch-btn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Dispatching...';
+            btn.disabled = true;
+
+            // Gather parameters
+            let paramsDict = {};
+            const requiredParams = commandParams[selectedCommand] || [];
+            let missingParam = false;
+            
+            requiredParams.forEach(p => {
+                const val = document.getElementById(`param-${p.id}`).value;
+                if (!val) missingParam = true;
+                paramsDict[p.id] = val;
+            });
+
+            if (missingParam) {
+                appendToTerminal(`<span class="text-cyber-alert">[ERROR]</span> Missing required parameters for payload.`);
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                return;
+            }
+
+            appendToTerminal(`<span class="text-purple-400">[C2_TX]</span> Dispatching <span class="text-white">${selectedCommand}</span> to ${activeAgentId}...`);
+            
+            try {
+                const token = localStorage.getItem('megasoc_token');
+                
+                // Call real FastAPI endpoint
+                const url = new URL(window.location.origin + '/api/ir/task');
+                url.searchParams.append('agent_uuid', activeAgentId);
+                url.searchParams.append('command', selectedCommand);
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(paramsDict) // Send params in body
+                });
+
+                if (!response.ok) throw new Error("Dispatch failed");
+                const result = await response.json();
+                
+                appendToTerminal(`<span class="text-cyber-safe">[C2_ACK]</span> Task queued successfully. Task ID: <span class="text-white font-bold">${result.task_id}</span>`);
+                
+                // If it's an isolate command, fake the UI update for immediate feedback
+                if (selectedCommand === 'isolate_network') {
+                    document.getElementById('isolation-badge').classList.remove('hidden');
+                    appendToTerminal(`<span class="text-cyber-alert">[SYS_ALERT]</span> Network isolation protocol initiated on host.`);
+                }
+                if (selectedCommand === 'unisolate_network') {
+                    document.getElementById('isolation-badge').classList.add('hidden');
+                    appendToTerminal(`<span class="text-cyber-safe">[SYS_UPDATE]</span> Network isolation removed.`);
+                }
+                
+                // Hide builder
+                cancelCommand();
+
+            } catch (error) {
+                console.error("IR Task Error:", error);
+                appendToTerminal(`<span class="text-cyber-alert">[ERROR]</span> Task dispatch failed. Check backend connectivity.`);
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        // --- 5. Terminal Utility ---
+        function appendToTerminal(htmlString) {
+            const term = document.getElementById('terminal-output');
+            const now = new Date().toISOString().substring(11, 19); // Get HH:MM:SS
+            const line = document.createElement('div');
+            line.className = 'mb-1';
+            line.innerHTML = `<span class="text-gray-600">[${now}]</span> ${htmlString}`;
+            term.appendChild(line);
+            
+            // Auto-scroll to bottom
+            term.scrollTop = term.scrollHeight;
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAgents();
+        });
+
+    </script>
+</body>
+</html>

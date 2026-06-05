@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <title>Endpoint Agents - MegaSOC</title>
+    <meta name="description" content="MegaSOC Unified Security Dashboard - Agent Management">
+
+    <!-- Auth Guard -->
+    <script>
+        const token = localStorage.getItem('megasoc_token');
+        if (!token) {
+            window.location.href = '/login';
+        }
+    </script>
+
+    <!-- Tailwind CSS for Enterprise Styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Premium Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts: Inter & Space Grotesk -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { 
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Space Grotesk', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace']
+                    },
+                    colors: {
+                        cyber: {
+                            950: '#040914',
+                            900: '#0B1120',
+                            800: '#1E293B',
+                            accent: '#3B82F6',
+                            neon: '#06B6D4',
+                            alert: '#EF4444',
+                            safe: '#10B981',
+                            warning: '#F59E0B',
+                            purple: '#8B5CF6'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0B1120; }
+        ::-webkit-scrollbar-thumb { background: #1E293B; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3B82F6; }
+        
+        .glass-panel {
+            background: rgba(11, 17, 32, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(30, 41, 59, 0.8);
+        }
+
+        .agent-row:hover {
+            background-color: rgba(30, 41, 59, 0.4);
+        }
+
+        /* ===== MOBILE-FIRST RESPONSIVE FRAMEWORK ===== */
+        :root {
+            --sidebar-width-lg: 256px;
+            --sidebar-width-md: 200px;
+            --header-height: 64px;
+            --bottom-nav-height: 72px;
+        }
+
+        @media (max-width: 767px) {
+            body { padding-bottom: var(--bottom-nav-height); }
+            aside.w-64 {
+                position: fixed; left: 0; top: 0; height: 100vh; width: 280px;
+                transform: translateX(-110%); transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.2, 1);
+                z-index: 60; overflow-y: auto; -webkit-overflow-scrolling: touch;
+            }
+            aside.w-64.mobile-open { transform: translateX(0); }
+            #mobile-overlay {
+                display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7);
+                z-index: 50; backdrop-filter: blur(4px);
+            }
+            #mobile-overlay.active { display: block; }
+            .mobile-hamburger {
+                display: inline-flex; width: 44px; height: 44px; align-items: center;
+                justify-content: center; background: transparent; border: none;
+                cursor: pointer; color: #cbd5e1; z-index: 61;
+            }
+            .mobile-hamburger:active { background: rgba(255, 255, 255, 0.05); border-radius: 8px; }
+            .mega-bottom-nav {
+                display: flex; position: fixed; bottom: 0; left: 0; right: 0; height: var(--bottom-nav-height);
+                background: rgba(4, 9, 20, 0.96); border-top: 1px solid rgba(30, 41, 59, 0.8);
+                z-index: 55; gap: 0; justify-content: space-around; padding: 8px 0;
+                box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.5); backdrop-filter: blur(8px);
+            }
+            .mega-bottom-nav a {
+                display: flex; flex-direction: column; align-items: center; gap: 4px; color: #94a3b8;
+                text-decoration: none; font-size: 10px; font-weight: 500; padding: 8px; border-radius: 8px;
+                -webkit-tap-highlight-color: transparent;
+            }
+            .mega-bottom-nav a:active { background: rgba(255, 255, 255, 0.05); }
+            .mega-bottom-nav a.active { color: #06B6D4; }
+            .mega-bottom-nav .nav-icon { font-size: 20px; line-height: 1; }
+            main { padding-bottom: var(--bottom-nav-height) !important; }
+            .flex-1 { padding-bottom: var(--bottom-nav-height) !important; }
+            header { padding: 0 12px !important; }
+            .p-8, .p-6 { padding: 16px !important; }
+            .glass-panel { border-radius: 12px; margin-bottom: 12px; }
+            .grid { gap: 12px !important; }
+            .grid-cols-1, .grid-cols-2, .grid-cols-3, .grid-cols-4 { grid-template-columns: 1fr; }
+            button, a { min-height: 44px; min-width: 44px; }
+            aside .text-2xl { font-size: 18px; }
+            aside span:not(.text-white) { font-size: 12px; }
+            .hidden-mobile { display: none !important; }
+            header h1 { font-size: 18px; }
+            .h-20 { height: 60px; }
+            
+            /* Table responsiveness */
+            table th:nth-child(n+4):not(:last-child),
+            table td:nth-child(n+4):not(:last-child) {
+                display: none;
+            }
+        }
+
+        @media (min-width: 768px) and (max-width: 1024px) {
+            aside.w-64 { width: var(--sidebar-width-md); }
+            .p-8 { padding: 20px; }
+            .grid-cols-4, .grid-cols-3 { grid-template-columns: repeat(2, 1fr); }
+            header { padding: 0 20px !important; }
+            .mega-bottom-nav { display: none; }
+            main { padding-bottom: 0 !important; }
+            
+            table th:nth-child(n+5):not(:last-child),
+            table td:nth-child(n+5):not(:last-child) {
+                display: none;
+            }
+        }
+
+        @media (min-width: 1025px) {
+            aside.w-64 { width: var(--sidebar-width-lg); transform: none !important; }
+            #mobile-overlay { display: none !important; }
+            .mobile-hamburger { display: none !important; }
+            .mega-bottom-nav { display: none !important; }
+            main { padding-bottom: 0 !important; }
+            .hidden-desktop { display: none !important; }
+            .p-8 { padding: 32px; }
+        }
+
+        @supports (padding: max(0px)) {
+            aside.w-64 { padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
+            header { padding-left: max(12px, env(safe-area-inset-left)) !important; padding-right: max(12px, env(safe-area-inset-right)) !important; padding-top: max(8px, env(safe-area-inset-top)) !important; }
+            .mega-bottom-nav { padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+        }
+
+        @media (hover: none) and (pointer: coarse) {
+            button, a, input, select, textarea { min-height: 48px; min-width: 48px; }
+            .agent-row { -webkit-tap-highlight-color: rgba(6, 182, 212, 0.1); }
+        }
+
+        html { scroll-behavior: smooth; }
+        input { font-size: 16px; }
+
+        @media (prefers-reduced-motion: reduce) {
+            * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+        }
+    </style>
+</head>
+<body class="bg-cyber-950 text-gray-300 font-sans antialiased h-screen overflow-hidden flex selection:bg-cyber-accent selection:text-white">
+
+    <!-- Mobile Overlay -->
+    <div id="mobile-overlay"></div>
+
+    <!-- Sidebar Navigation -->
+    <aside class="w-64 glass-panel border-r border-cyber-800 flex flex-col z-20 h-full flex-shrink-0 transition-all duration-300 relative">
+        <!-- Logo -->
+        <div class="h-20 flex items-center px-6 border-b border-cyber-800">
+            <a href="/" class="flex items-center gap-3 group cursor-pointer w-full">
+                <div class="flex-shrink-0 flex items-center gap-3 group cursor-pointer">
+                    <!-- Megadriod Logo with Fallback -->
+                    <img src="logo.png" alt="Megadriod Logo" class="h-10 w-auto group-hover:scale-105 transition-transform" 
+                         onerror="this.onerror=null; this.outerHTML='<div class=\'w-10 h-10 rounded-lg bg-gradient-to-br from-cyber-accent to-cyber-neon flex items-center justify-center text-white text-xl shadow-[0_0_15px_rgba(6,182,212,0.5)]\'><i class=\'fas fa-shield-virus\'></i></div>'">
+                    <span class="font-display font-bold text-2xl tracking-tight text-white">
+                        Mega<span class="text-white">SOC</span>
+                    </span>
+                </div>
+            </a>
+        </div>
+
+        <!-- Navigation Links -->
+        <nav class="flex-1 overflow-y-auto py-6 px-4 space-y-1.5 custom-scrollbar">
+            <p class="px-2 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Platform Core</p>
+            <a href="/dashboard" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-cyber-800/50 hover:text-white font-medium transition-colors">
+                <i class="fas fa-chart-line w-5 text-center"></i> Dashboard Overview
+            </a>
+            <!-- Active State on Endpoint Agents -->
+            <a href="/agent-management" class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-cyber-accent/10 text-cyber-neon border border-cyber-accent/20 font-medium transition-colors">
+                <i class="fas fa-server w-5 text-center"></i> Endpoint Agents
+            </a>
+            
+            <p class="px-2 text-xs font-semibold text-gray-500 uppercase tracking-wider mt-6 mb-2">Security Labs</p>
+            <a href="/siem-logs" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-cyber-800/50 hover:text-white font-medium transition-colors">
+                <i class="fas fa-radar w-5 text-center"></i> SIEM & Logs
+            </a>
+            <a href="/incident-response" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-cyber-800/50 hover:text-white font-medium transition-colors">
+                <i class="fas fa-shield-cross w-5 text-center"></i> Incident Response
+            </a>
+            <a href="/threat-intel" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-cyber-800/50 hover:text-white font-medium transition-colors">
+                <i class="fas fa-earth-americas w-5 text-center"></i> Threat Intelligence
+            </a>
+            <a href="/soar-automation" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-cyber-800/50 hover:text-white font-medium transition-colors">
+                <i class="fas fa-wand-magic-sparkles w-5 text-center"></i> SOAR Automation
+            </a>
+            <a href="/phishing-analyzer" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-cyber-800/50 hover:text-white font-medium transition-colors">
+                <i class="fas fa-envelope-shield w-5 text-center"></i> Email & URLs
+            </a>
+        </nav>
+
+        <!-- User & System Status -->
+        <div class="p-4 border-t border-cyber-800">
+            <div class="flex items-center justify-between mb-4 px-2">
+                <div class="flex items-center gap-2 text-xs">
+                    <div class="w-2 h-2 rounded-full bg-cyber-safe animate-pulse"></div>
+                    <span class="text-gray-400">System Online</span>
+                </div>
+                <span class="text-xs text-gray-500" id="clock-display">00:00:00</span>
+            </div>
+            <button onclick="logout()" class="w-full flex items-center justify-center gap-2 py-2 px-4 border border-cyber-800 hover:bg-cyber-800 rounded-md text-sm font-medium text-gray-300 transition-colors">
+                <i class="fas fa-sign-out-alt"></i> Terminate Session
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col h-full relative overflow-hidden bg-cyber-950">
+        <!-- Top Navbar -->
+        <header class="h-20 glass-panel border-b border-cyber-800 flex items-center justify-between px-8 z-10 shrink-0">
+            <button class="mobile-hamburger" aria-label="Toggle navigation menu">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 7h16M4 12h16M4 17h16"></path>
+                </svg>
+            </button>
+
+            <h1 class="text-2xl font-display font-bold text-white hidden md:flex items-center gap-3">
+                <i class="fas fa-server text-cyber-neon"></i> Endpoint Agent Management
+            </h1>
+            <h1 class="text-xl font-display font-bold text-white md:hidden flex items-center gap-2">
+                <i class="fas fa-server text-cyber-neon"></i> Agents
+            </h1>
+            
+            <div class="flex items-center gap-6">
+                <!-- Action Buttons -->
+                <button onclick="deployAgentModal()" class="hidden md:flex bg-gradient-to-r from-cyber-accent to-cyber-neon hover:from-blue-600 hover:to-cyan-600 text-white font-bold py-2 px-5 rounded-md shadow-lg transition-all items-center gap-2 text-sm">
+                    <i class="fas fa-download"></i> Deploy New Agent
+                </button>
+                <div class="h-6 w-px bg-cyber-800 hidden md:block"></div>
+                <!-- Admin Profile -->
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-full bg-gradient-to-r from-cyber-accent to-cyber-neon flex items-center justify-center text-white font-bold">
+                        AD
+                    </div>
+                    <div class="hidden md:block">
+                        <p class="text-sm font-semibold text-white leading-tight">Admin User</p>
+                        <p class="text-xs text-cyber-neon">Enterprise Admin</p>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Scrollable Workspace -->
+        <div class="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar relative">
+            
+            <!-- Mobile Action Bar -->
+            <div class="md:hidden mb-6 flex justify-between items-center">
+                <button onclick="deployAgentModal()" class="bg-gradient-to-r from-cyber-accent to-cyber-neon text-white font-bold py-3 px-5 rounded-md shadow-lg flex-1 flex justify-center items-center gap-2 text-sm">
+                    <i class="fas fa-download"></i> Deploy Agent
+                </button>
+            </div>
+
+            <!-- KPI Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="glass-panel p-5 rounded-xl border border-cyber-800 flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-full bg-cyber-accent/10 border border-cyber-accent/30 flex items-center justify-center text-cyber-accent text-xl">
+                        <i class="fas fa-layer-group"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">Total Endpoints</p>
+                        <h3 class="text-2xl font-display font-bold text-white" id="kpi-total">0</h3>
+                    </div>
+                </div>
+                <div class="glass-panel p-5 rounded-xl border border-cyber-800 flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-full bg-cyber-safe/10 border border-cyber-safe/30 flex items-center justify-center text-cyber-safe text-xl">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">Online & Healthy</p>
+                        <h3 class="text-2xl font-display font-bold text-white" id="kpi-online">0</h3>
+                    </div>
+                </div>
+                <div class="glass-panel p-5 rounded-xl border border-cyber-800 flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-full bg-orange-500/10 border border-orange-500/30 flex items-center justify-center text-orange-400 text-xl">
+                        <i class="fas fa-spider"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">High Risk / Vuln</p>
+                        <h3 class="text-2xl font-display font-bold text-white" id="kpi-risk">0</h3>
+                    </div>
+                </div>
+                <div class="glass-panel p-5 rounded-xl border border-cyber-800 flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-full bg-cyber-alert/10 border border-cyber-alert/30 flex items-center justify-center text-cyber-alert text-xl">
+                        <i class="fas fa-lock"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">Network Isolated</p>
+                        <h3 class="text-2xl font-display font-bold text-white" id="kpi-isolated">0</h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Agent Table Container -->
+            <div class="glass-panel rounded-xl border border-cyber-800 flex flex-col overflow-hidden relative">
+                
+                <!-- Toast Notification Container -->
+                <div id="action-toast" class="absolute top-4 right-4 bg-cyber-safe/90 border border-cyber-safe text-white px-4 py-2 rounded shadow-lg z-50 transform transition-all duration-300 translate-y-[-150%] opacity-0 flex items-center gap-2 text-sm font-medium">
+                    <i class="fas fa-check-circle"></i> <span id="toast-message">Action Successful</span>
+                </div>
+
+                <!-- Table Controls -->
+                <div class="p-4 border-b border-cyber-800 flex flex-col md:flex-row justify-between items-center gap-4 bg-cyber-900">
+                    <div class="relative w-full md:w-96">
+                        <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
+                        <input type="text" id="agent-search" placeholder="Search by Hostname, IP, or UUID..." 
+                            class="w-full bg-cyber-950 border border-cyber-800 rounded-md py-2 pl-9 pr-3 text-sm text-white focus:outline-none focus:border-cyber-neon transition-colors"
+                            onkeyup="filterAgents()">
+                    </div>
+                    <div class="flex items-center gap-3 w-full md:w-auto">
+                        <button onclick="fetchAgents()" class="bg-cyber-800 text-gray-300 hover:text-white transition-colors p-2.5 rounded-md flex items-center justify-center" title="Refresh List">
+                            <i class="fas fa-sync-alt" id="refresh-icon"></i>
+                        </button>
+                        <select class="flex-1 md:flex-none bg-cyber-950 border border-cyber-800 text-gray-300 text-sm rounded-md focus:ring-cyber-neon focus:border-cyber-neon block p-2.5">
+                            <option value="all">All Statuses</option>
+                            <option value="online">Online Only</option>
+                            <option value="offline">Offline Only</option>
+                            <option value="isolated">Isolated Only</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Table Body -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm whitespace-nowrap">
+                        <thead class="bg-cyber-900 border-b border-cyber-800 text-gray-400 font-medium uppercase tracking-wider text-xs">
+                            <tr>
+                                <th class="px-6 py-4">Hostname / UUID</th>
+                                <th class="px-6 py-4">Status</th>
+                                <th class="px-6 py-4">UEBA Risk Score</th>
+                                <th class="px-6 py-4">IP Address</th>
+                                <th class="px-6 py-4">OS Version</th>
+                                <th class="px-6 py-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="agent-tbody" class="divide-y divide-cyber-800/50">
+                            <!-- Populated by JS -->
+                            <tr>
+                                <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                                    <i class="fas fa-circle-notch fa-spin text-3xl mb-3 text-cyber-neon"></i>
+                                    <p>Discovering enterprise endpoints...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Deploy Modal (Hidden) -->
+        <div id="deploy-modal" class="fixed inset-0 bg-cyber-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
+            <div class="glass-panel border border-cyber-800 rounded-xl p-6 md:p-8 max-w-lg w-full relative transform scale-95 transition-transform duration-300 m-4" id="deploy-modal-content">
+                <button onclick="closeDeployModal()" class="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+                
+                <h2 class="text-2xl font-display font-bold text-white mb-2"><i class="fas fa-download text-cyber-neon mr-2"></i> Deploy Agent</h2>
+                <p class="text-gray-400 text-sm mb-6">Install the lightweight MegaSOC XDR agent on your Windows endpoints to begin forensic telemetry streaming and Attack Surface monitoring.</p>
+                
+                <div class="space-y-4">
+                    <div class="bg-cyber-950 p-4 rounded border border-cyber-800">
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">1. Download Executable</label>
+                        <a href="#" class="flex items-center justify-between group">
+                            <span class="text-white font-mono text-sm group-hover:text-cyber-neon transition-colors"><i class="fab fa-windows mr-2"></i> megasoc_agent_v4.exe</span>
+                            <i class="fas fa-arrow-down text-gray-500 group-hover:text-cyber-neon transition-colors"></i>
+                        </a>
+                    </div>
+                    
+                    <div class="bg-cyber-950 p-4 rounded border border-cyber-800">
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">2. Deployment Command (PowerShell)</label>
+                        <div class="flex items-center justify-between bg-black p-3 rounded relative group overflow-hidden">
+                            <code class="text-cyber-safe text-xs font-mono overflow-x-auto whitespace-nowrap pr-8 custom-scrollbar pb-1">
+                                .\megasoc_agent_v4.exe --server https://soc.megadriod.com
+                            </code>
+                            <button onclick="navigator.clipboard.writeText('.\\megasoc_agent_v4.exe --server https://soc.megadriod.com')" class="absolute right-2 top-2 bg-black text-gray-500 hover:text-white transition-colors p-1" title="Copy Command">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-8 flex justify-end">
+                    <button onclick="closeDeployModal()" class="bg-cyber-900 border border-cyber-800 hover:bg-cyber-800 text-white font-semibold py-2 px-6 rounded transition-colors w-full md:w-auto">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Bottom Navigation for Mobile (Mobile Only) -->
+    <nav class="mega-bottom-nav hidden-desktop" aria-label="Mobile navigation">
+        <a href="/dashboard" title="Dashboard">
+            <i class="fas fa-chart-line nav-icon"></i>
+            <span>Dashboard</span>
+        </a>
+        <a href="/siem-logs" title="SIEM Logs">
+            <i class="fas fa-radar nav-icon"></i>
+            <span>SIEM</span>
+        </a>
+        <a href="/incident-response" title="Incident Response">
+            <i class="fas fa-shield-cross nav-icon"></i>
+            <span>IR</span>
+        </a>
+        <a href="/threat-intel" title="Threat Intelligence">
+            <i class="fas fa-earth-americas nav-icon"></i>
+            <span>Threats</span>
+        </a>
+        <a href="/soar-automation" title="SOAR">
+            <i class="fas fa-wand-magic-sparkles nav-icon"></i>
+            <span>SOAR</span>
+        </a>
+        <a href="/agent-management" title="Agents" class="active">
+            <i class="fas fa-server nav-icon"></i>
+            <span>Agents</span>
+        </a>
+    </nav>
+
+    <script>
+        // ===== MOBILE RESPONSIVE CONTROLLER =====
+        class MobileResponsive {
+            constructor() {
+                this.sidebar = document.querySelector('aside.w-64');
+                this.overlay = document.getElementById('mobile-overlay') || this.createOverlay();
+                this.hamburger = document.querySelector('.mobile-hamburger') || this.createHamburger();
+                this.isOpen = false;
+                this.init();
+            }
+
+            createOverlay() {
+                const overlay = document.createElement('div');
+                overlay.id = 'mobile-overlay';
+                document.body.appendChild(overlay);
+                return overlay;
+            }
+
+            createHamburger() {
+                const btn = document.createElement('button');
+                btn.className = 'mobile-hamburger';
+                btn.setAttribute('aria-label', 'Toggle navigation menu');
+                btn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>';
+                
+                const header = document.querySelector('header');
+                if (header) {
+                    header.insertBefore(btn, header.firstChild);
+                }
+                return btn;
+            }
+
+            init() {
+                this.hamburger.addEventListener('click', () => this.toggleSidebar());
+                this.overlay.addEventListener('click', () => this.closeSidebar());
+
+                if (this.sidebar) {
+                    this.sidebar.querySelectorAll('a').forEach(link => {
+                        link.addEventListener('click', () => this.closeSidebar());
+                    });
+                }
+
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' && this.isOpen) this.closeSidebar();
+                });
+
+                window.addEventListener('resize', () => {
+                    if (window.innerWidth > 1024 && this.isOpen) {
+                        this.closeSidebar();
+                    }
+                });
+            }
+
+            toggleSidebar() {
+                this.isOpen ? this.closeSidebar() : this.openSidebar();
+            }
+
+            openSidebar() {
+                this.isOpen = true;
+                if (this.sidebar) this.sidebar.classList.add('mobile-open');
+                this.overlay.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
+
+            closeSidebar() {
+                this.isOpen = false;
+                if (this.sidebar) this.sidebar.classList.remove('mobile-open');
+                this.overlay.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        }
+
+        // Clock Update
+        setInterval(() => {
+            document.getElementById('clock-display').innerText = new Date().toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
+        }, 1000);
+
+        function logout() {
+            localStorage.removeItem('megasoc_token');
+            window.location.href = '/login';
+        }
+
+        // Custom Toast Notification
+        function showToast(message) {
+            const toast = document.getElementById('action-toast');
+            document.getElementById('toast-message').innerText = message;
+            
+            toast.classList.remove('translate-y-[-150%]', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+            
+            setTimeout(() => {
+                toast.classList.add('translate-y-[-150%]', 'opacity-0');
+                toast.classList.remove('translate-y-0', 'opacity-100');
+            }, 3000);
+        }
+
+        // --- XDR Vuln Scan Action ---
+        async function runVulnScan(agentId, btnElement) {
+            const originalHtml = btnElement.innerHTML;
+            btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            btnElement.disabled = true;
+
+            try {
+                const token = localStorage.getItem('megasoc_token');
+                
+                // Simulate detecting software to send to the XDR engine
+                const payload = {
+                    agent_uuid: agentId,
+                    software: [
+                        { name: "Chrome", version: "100.0.4896.60" },
+                        { name: "Apache", version: "2.4.49" },
+                        { name: "Windows", version: "10.0.19044" }
+                    ]
+                };
+
+                const response = await fetch('/api/agents/vuln_scan', {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    showToast(`Attack Surface Scan completed for ${agentId.substring(0,6)}`);
+                    // Reload to update risk scores if necessary
+                    setTimeout(fetchAgents, 1000);
+                } else {
+                    throw new Error("Scan failed");
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Failed to initiate vulnerability scan.");
+            } finally {
+                btnElement.innerHTML = originalHtml;
+                btnElement.disabled = false;
+            }
+        }
+
+        // --- Fetch & Render Agents ---
+        async function fetchAgents() {
+            const token = localStorage.getItem('megasoc_token');
+            const tbody = document.getElementById('agent-tbody');
+            const refreshIcon = document.getElementById('refresh-icon');
+            
+            refreshIcon.classList.add('fa-spin');
+
+            try {
+                // We use the SIEM stats endpoint which returns top_agents to construct our view
+                const response = await fetch('/api/siem/stats', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.status === 401 || response.status === 403) { logout(); return; }
+                if (!response.ok) throw new Error("Failed to fetch agent data.");
+
+                const data = await response.json();
+                const agents = data.top_agents || [];
+
+                tbody.innerHTML = '';
+                let highRiskCount = 0;
+
+                if (agents.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                                <div class="flex flex-col items-center justify-center">
+                                    <i class="fas fa-server text-3xl mb-3 text-cyber-800"></i>
+                                    <p class="text-sm">No agents registered yet.</p>
+                                    <button onclick="deployAgentModal()" class="mt-4 text-cyber-neon hover:text-white text-xs font-bold uppercase transition-colors">Deploy your first agent <i class="fas fa-arrow-right ml-1"></i></button>
+                                </div>
+                            </td>
+                        </tr>`;
+                    // Reset KPIs
+                    document.getElementById('kpi-total').innerText = '0';
+                    document.getElementById('kpi-online').innerText = '0';
+                    document.getElementById('kpi-offline').innerText = '0';
+                    document.getElementById('kpi-risk').innerText = '0';
+                    document.getElementById('kpi-isolated').innerText = '0';
+                    return;
+                }
+
+                agents.forEach((a, idx) => {
+                    const agentId = a.agent || `AGENT-${idx+1}`;
+                    const hostname = `WIN-HOST-${agentId.substring(0,4).toUpperCase()}`;
+                    const ip = `10.0.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`;
+                    const isOnline = true;
+                    
+                    // Simulate UEBA/Vuln risk score based on event count 
+                    const riskScore = Math.min(99, Math.floor((a.count / 50) + 15 + Math.random() * 10));
+                    if(riskScore > 75) highRiskCount++;
+
+                    let riskColor = 'text-cyber-safe border-cyber-safe/30 bg-cyber-safe/10';
+                    if (riskScore > 40) riskColor = 'text-orange-400 border-orange-400/30 bg-orange-400/10';
+                    if (riskScore > 75) riskColor = 'text-cyber-alert border-cyber-alert/30 bg-cyber-alert/10';
+
+                    const statusClass = isOnline ? 'bg-cyber-safe/10 border-cyber-safe/30 text-cyber-safe' : 'bg-gray-800 border-gray-600 text-gray-400';
+                    const statusDot = isOnline ? 'bg-cyber-safe' : 'bg-gray-500';
+                    const statusText = isOnline ? 'Online' : 'Offline';
+                    const checkinTime = new Date().toISOString().replace('T', ' ').substring(0, 19);
+
+                    const tr = document.createElement('tr');
+                    tr.className = 'agent-row border-b border-cyber-800/50 transition-colors';
+                    tr.innerHTML = `
+                        <td class="px-6 py-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded bg-cyber-900 border border-cyber-800 flex items-center justify-center text-gray-400 shrink-0">
+                                    <i class="fab fa-windows"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-bold text-white agent-hostname">${hostname}</p>
+                                    <p class="text-xs text-gray-500 font-mono agent-uuid truncate max-w-[120px] sm:max-w-xs">${agentId}</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider border ${statusClass} flex items-center gap-1.5 w-fit">
+                                <div class="w-1.5 h-1.5 rounded-full ${statusDot}"></div> ${statusText}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-1 rounded text-xs font-bold font-mono tracking-wider border ${riskColor}">
+                                ${riskScore.toFixed(1)}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 font-mono text-sm text-gray-300 agent-ip">${ip}</td>
+                        <td class="px-6 py-4 text-sm text-gray-400">Win 11 Pro</td>
+                        <td class="px-6 py-4 text-right">
+                            <div class="flex items-center justify-end gap-2">
+                                <button onclick="runVulnScan('${agentId}', this)" class="bg-cyber-900 border border-cyber-800 hover:border-purple-500 hover:text-purple-400 text-gray-400 p-2 rounded transition-colors" title="Scan Attack Surface">
+                                    <i class="fas fa-spider"></i>
+                                </button>
+                                <a href="/incident-response" class="bg-cyber-900 border border-cyber-800 hover:border-cyber-alert hover:text-cyber-alert text-gray-400 p-2 rounded transition-colors" title="Isolate Host">
+                                    <i class="fas fa-lock"></i>
+                                </a>
+                                <a href="/siem-logs" class="bg-cyber-900 border border-cyber-800 hover:border-cyber-neon hover:text-cyber-neon text-gray-400 p-2 rounded transition-colors" title="View Telemetry">
+                                    <i class="fas fa-radar"></i>
+                                </a>
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                // Update KPIs
+                document.getElementById('kpi-total').innerText = agents.length;
+                document.getElementById('kpi-online').innerText = agents.length; 
+                document.getElementById('kpi-risk').innerText = highRiskCount;
+                document.getElementById('kpi-isolated').innerText = '0';
+
+            } catch (error) {
+                console.error("Agent List Error:", error);
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="px-6 py-8 text-center text-cyber-alert">
+                            <i class="fas fa-exclamation-triangle mb-2 text-2xl"></i><br>
+                            Unable to retrieve agent registry.
+                        </td>
+                    </tr>`;
+            } finally {
+                setTimeout(() => refreshIcon.classList.remove('fa-spin'), 500);
+            }
+        }
+
+        // --- Frontend Search Filter ---
+        function filterAgents() {
+            const query = document.getElementById('agent-search').value.toLowerCase();
+            const rows = document.querySelectorAll('.agent-row');
+            
+            rows.forEach(row => {
+                const hostname = row.querySelector('.agent-hostname').innerText.toLowerCase();
+                const uuid = row.querySelector('.agent-uuid').innerText.toLowerCase();
+                const ip = row.querySelector('.agent-ip').innerText.toLowerCase();
+                
+                if (hostname.includes(query) || uuid.includes(query) || ip.includes(query)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        // --- Deploy Modal Logic ---
+        function deployAgentModal() {
+            const modal = document.getElementById('deploy-modal');
+            const content = document.getElementById('deploy-modal-content');
+            
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                content.classList.remove('scale-95');
+            }, 10);
+        }
+
+        function closeDeployModal() {
+            const modal = document.getElementById('deploy-modal');
+            const content = document.getElementById('deploy-modal-content');
+            
+            modal.classList.add('opacity-0');
+            content.classList.add('scale-95');
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        // Init
+        document.addEventListener('DOMContentLoaded', () => {
+            if (document.querySelector('aside.w-64')) {
+                new MobileResponsive();
+            }
+            fetchAgents();
+        });
+
+    </script>
+</body>
+</html>

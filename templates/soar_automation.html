@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <title>SOAR Automation - MegaSOC</title>
+    <meta name="description" content="MegaSOC Unified Security Dashboard - SOAR Automation Playbooks">
+    
+    <!-- Auth Guard -->
+    <script>
+        const token = localStorage.getItem('megasoc_token');
+        if (!token) {
+            window.location.href = '/login';
+        }
+    </script>
+
+    <!-- Tailwind CSS for Enterprise Styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Premium Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts: Inter & Space Grotesk -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { 
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Space Grotesk', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace']
+                    },
+                    colors: {
+                        cyber: {
+                            950: '#040914',
+                            900: '#0B1120',
+                            800: '#1E293B',
+                            accent: '#3B82F6',
+                            neon: '#06B6D4',
+                            alert: '#EF4444',
+                            safe: '#10B981',
+                            warning: '#F59E0B',
+                            purple: '#8B5CF6'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0B1120; }
+        ::-webkit-scrollbar-thumb { background: #1E293B; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3B82F6; }
+        
+        .glass-panel {
+            background: rgba(11, 17, 32, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(30, 41, 59, 0.8);
+        }
+
+        .playbook-card {
+            transition: all 0.2s ease-in-out;
+            border-left: 3px solid transparent;
+        }
+        .playbook-card:hover { background: rgba(30, 41, 59, 0.5); border-left-color: #3B82F6; }
+        .playbook-card.active { background: rgba(30, 41, 59, 0.8); border-left-color: #06B6D4; border-color: #06B6D4; }
+
+        /* Node connector line */
+        .flow-line {
+            position: absolute;
+            left: 23px;
+            top: 40px;
+            bottom: -20px;
+            width: 2px;
+            background: #1E293B;
+            z-index: 0;
+        }
+
+        /* ===== MOBILE-FIRST RESPONSIVE FRAMEWORK ===== */
+        :root {
+            --sidebar-width-lg: 256px;
+            --sidebar-width-md: 200px;
+            --header-height: 64px;
+            --bottom-nav-height: 72px;
+        }
+
+        @media (max-width: 767px) {
+            body { padding-bottom: var(--bottom-nav-height); }
+            aside.w-64 {
+                position: fixed; left: 0; top: 0; height: 100vh; width: 280px;
+                transform: translateX(-110%); transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.2, 1);
+                z-index: 60; overflow-y: auto; -webkit-overflow-scrolling: touch;
+            }
+            aside.w-64.mobile-open { transform: translateX(0); }
+            #mobile-overlay {
+                display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7);
+                z-index: 50; backdrop-filter: blur(4px);
+            }
+            #mobile-overlay.active { display: block; }
+            .mobile-hamburger {
+                display: inline-flex; width: 44px; height: 44px; align-items: center;
+                justify-content: center; background: transparent; border: none;
+                cursor: pointer; color: #cbd5e1; z-index: 61;
+            }
+            .mobile-hamburger:active { background: rgba(255, 255, 255, 0.05); border-radius: 8px; }
+            .mega-bottom-nav {
+                display: flex; position: fixed; bottom: 0; left: 0; right: 0; height: var(--bottom-nav-height);
+                background: rgba(4, 9, 20, 0.96); border-top: 1px solid rgba(30, 41, 59, 0.8);
+                z-index: 55; gap: 0; justify-content: space-around; padding: 8px 0;
+                box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.5); backdrop-filter: blur(8px);
+            }
+            .mega-bottom-nav a {
+                display: flex; flex-direction: column; align-items: center; gap: 4px; color: #94a3b8;
+                text-decoration: none; font-size: 10px; font-weight: 500; padding: 8px; border-radius: 8px;
+                -webkit-tap-highlight-color: transparent;
+            }
+            .mega-bottom-nav a:active { background: rgba(255, 255, 255, 0.05); }
+            .mega-bottom-nav a.active { color: #06B6D4; }
+            .mega-bottom-nav .nav-icon { font-size: 20px; line-height: 1; }
+            main { padding-bottom: var(--bottom-nav-height) !important; }
+            .flex-1 { padding-bottom: var(--bottom-nav-height) !important; }
+            header { padding: 0 12px !important; }
+            .p-8, .p-6 { padding: 16px !important; }
+            .glass-panel { border-radius: 12px; margin-bottom: 12px; }
+            .grid { gap: 12px !important; }
+            .grid-cols-1, .grid-cols-2, .grid-cols-3, .grid-cols-4 { grid-template-columns: 1fr; }
+            button, a { min-height: 44px; min-width: 44px; }
+            aside .text-2xl { font-size: 18px; }
+            aside span:not(.text-white) { font-size: 12px; }
+            .hidden-mobile { display: none !important; }
+            header h1 { font-size: 18px; }
+            .h-20 { height: 60px; }
+        }
+
+        @media (min-width: 768px) and (max-width: 1024px) {
+            aside.w-64 { width: var(--sidebar-width-md); }
+            .p-8 { padding: 20px; }
+            .grid-cols-4, .grid-cols-3 { grid-template-columns: repeat(2, 1fr); }
+            header { padding: 0 20px !important; }
+            .mega-bottom-nav { display: none; }
+            main { padding-bottom: 0 !important; }
+        }
+
+        @media (min-width: 1025px) {
+            aside.w-64 { width: var(--sidebar-width-lg); transform: none !important; }
+            #mobile-overlay { display: none !important; }
+            .mobile-hamburger { display: none !important; }
+            .mega-bottom-nav { display: none !important; }
+            main { padding-bottom: 0 !important; }
+            .hidden-desktop { display: none !important; }
+            .p-8 { padding: 32px; }
+        }
+
+        @supports (padding: max(0px)) {
+            aside.w-64 { padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
+            header { padding-left: max(12px, env(safe-area-inset-left)) !important; padding-right: max(12px, env(safe-area-inset-right)) !important; padding-top: max(8px, env(safe-area-inset-top)) !important; }
+            .mega-bottom-nav { padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+        }
+
+        @media (hover: none) and (pointer: coarse) {
+            button, a, input, select, textarea { min-height: 48px; min-width: 48px; }
+            .agent-row, .log-row, .playbook-card, .agent-card { -webkit-tap-highlight-color: rgba(6, 182, 212, 0.1); }
+        }
+
+        html { scroll-behavior: smooth; }
+        input { font-size: 16px; }
+
+        @media (max-width: 480px) {
+            h1, .text-3xl { font-size: 20px; }
+            h2, .text-2xl { font-size: 18px; }
+            h3, .text-lg { font-size: 16px; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+        }
+    </style>
+</head>
+<body class="bg-cyber-950 text-gray-300 font-sans antialiased h-screen overflow-hidden flex selection:bg-cyber-accent selection:text-white">
+
+    <!-- Mobile Overlay -->
+    <div id="mobile-overlay"></div>
+
+    <!-- Sidebar Navigation -->
+    <aside class="w-64 glass-panel border-r border-cyber-800 flex flex-col z-20 h-full flex-shrink-0 transition-all duration-300 relative">
+        <!-- Logo -->
+        <div class="h-20 flex items-center px-6 border-b border-cyber-800">
+            <a href="/" class="flex items-center gap-3 group cursor-pointer w-full">
+                <div class="flex-shrink-0 flex items-center gap-3 group cursor-pointer">
+                    <!-- Megadriod Logo with Fallback -->
+                    <img src="logo.png" alt="Megadriod Logo" class="h-10 w-auto group-hover:scale-105 transition-transform" 
+                         onerror="this.onerror=null; this.outerHTML='<div class=\'w-10 h-10 rounded-lg bg-gradient-to-br from-cyber-accent to-cyber-neon flex items-center justify-center text-white text-xl shadow-[0_0_15px_rgba(6,182,212,0.5)]\'><i class=\'fas fa-shield-virus\'></i></div>'">
+                    <span class="font-display font-bold text-2xl tracking-tight text-white">
+                        Mega<span class="text-white">SOC</span>
+                    </span>
+                </div>
+            </a>
+        </div>
+
+        <!-- Navigation Links -->
+        <nav class="flex-1 overflow-y-auto py-6 px-4 space-y-1.5 custom-scrollbar">
+            <p class="px-2 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Platform Core</p>
+            <a href="/dashboard" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-cyber-800/50 hover:text-white font-medium transition-colors">
+                <i class="fas fa-chart-line w-5 text-center"></i> Dashboard Overview
+            </a>
+            <a href="/agent-management" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-cyber-800/50 hover:text-white font-medium transition-colors">
+                <i class="fas fa-server w-5 text-center"></i> Endpoint Agents
+            </a>
+            
+            <p class="px-2 text-xs font-semibold text-gray-500 uppercase tracking-wider mt-6 mb-2">Security Labs</p>
+            <a href="/siem-logs" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-cyber-800/50 hover:text-white font-medium transition-colors">
+                <i class="fas fa-radar w-5 text-center"></i> SIEM & Logs
+            </a>
+            <a href="/incident-response" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-cyber-800/50 hover:text-white font-medium transition-colors">
+                <i class="fas fa-shield-cross w-5 text-center"></i> Incident Response
+            </a>
+            <a href="/threat-intel" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-cyber-800/50 hover:text-white font-medium transition-colors">
+                <i class="fas fa-earth-americas w-5 text-center"></i> Threat Intelligence
+            </a>
+            <!-- Active State on SOAR -->
+            <a href="/soar-automation" class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-cyber-accent/10 text-cyber-neon border border-cyber-accent/20 font-medium transition-colors">
+                <i class="fas fa-wand-magic-sparkles w-5 text-center"></i> SOAR Automation
+            </a>
+            <a href="/phishing-analyzer" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-cyber-800/50 hover:text-white font-medium transition-colors">
+                <i class="fas fa-envelope-shield w-5 text-center"></i> Email & BEC
+            </a>
+        </nav>
+
+        <!-- User & System Status -->
+        <div class="p-4 border-t border-cyber-800">
+            <div class="flex items-center justify-between mb-4 px-2">
+                <div class="flex items-center gap-2 text-xs">
+                    <div class="w-2 h-2 rounded-full bg-cyber-safe animate-pulse"></div>
+                    <span class="text-gray-400">System Online</span>
+                </div>
+                <span class="text-xs text-gray-500" id="clock-display">00:00:00</span>
+            </div>
+            <button onclick="logout()" class="w-full flex items-center justify-center gap-2 py-2 px-4 border border-cyber-800 hover:bg-cyber-800 rounded-md text-sm font-medium text-gray-300 transition-colors">
+                <i class="fas fa-sign-out-alt"></i> Terminate Session
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col h-full relative overflow-hidden bg-cyber-950">
+        <!-- Top Navbar -->
+        <header class="h-20 glass-panel border-b border-cyber-800 flex items-center justify-between px-8 z-10 shrink-0">
+            <button class="mobile-hamburger" aria-label="Toggle navigation menu">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 7h16M4 12h16M4 17h16"></path>
+                </svg>
+            </button>
+
+            <h1 class="text-2xl font-display font-bold text-white hidden md:flex items-center gap-3">
+                <i class="fas fa-wand-magic-sparkles text-cyber-safe"></i> Multi-Step SOAR Playbooks
+            </h1>
+            <h1 class="text-xl font-display font-bold text-white md:hidden flex items-center gap-2">
+                <i class="fas fa-wand-magic-sparkles text-cyber-safe"></i> SOAR
+            </h1>
+            
+            <div class="flex items-center gap-6">
+                <button onclick="createNewPlaybook()" class="bg-gradient-to-r from-cyber-safe to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-cyber-950 font-bold py-2 px-5 rounded-md shadow-lg transition-all flex items-center gap-2 text-sm hidden sm:flex">
+                    <i class="fas fa-plus"></i> New Playbook
+                </button>
+                <div class="h-6 w-px bg-cyber-800 hidden sm:block"></div>
+                <!-- Admin Profile -->
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-full bg-gradient-to-r from-cyber-safe to-cyber-neon flex items-center justify-center text-cyber-950 font-bold">
+                        AD
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Workspace Split Pane -->
+        <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
+            
+            <!-- Playbook Library (Left Pane) -->
+            <div class="w-full md:w-1/3 md:max-w-sm glass-panel border-b md:border-r md:border-b-0 border-cyber-800 flex flex-col h-1/3 md:h-full z-10 shrink-0">
+                <div class="p-4 border-b border-cyber-800 flex justify-between items-center">
+                    <div class="relative flex-1 mr-2">
+                        <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
+                        <input type="text" placeholder="Search Playbooks..." class="w-full bg-cyber-900 border border-cyber-800 rounded-md py-2 pl-9 pr-3 text-sm text-white focus:outline-none focus:border-cyber-safe transition-colors">
+                    </div>
+                    <button onclick="createNewPlaybook()" class="sm:hidden bg-cyber-safe text-cyber-950 p-2 rounded-md font-bold text-sm shadow-lg">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+                
+                <div class="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar" id="playbook-list">
+                    <!-- Populated dynamically via JS -->
+                    <div class="text-center py-10 text-gray-500" id="loading-playbooks">
+                        <i class="fas fa-circle-notch fa-spin text-2xl mb-3 text-cyber-safe"></i>
+                        <p class="text-sm">Loading Rules...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Playbook Builder (Right Pane) -->
+            <div class="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar bg-cyber-950 relative" id="builder-container">
+                
+                <!-- Empty State -->
+                <div id="builder-empty-state" class="absolute inset-0 flex flex-col items-center justify-center text-center p-8 hidden">
+                    <div class="w-24 h-24 rounded-full bg-cyber-800/50 flex items-center justify-center mb-6">
+                        <i class="fas fa-project-diagram text-5xl text-cyber-800"></i>
+                    </div>
+                    <h2 class="text-2xl font-display text-gray-400 mb-2">Select or Create a Playbook</h2>
+                    <p class="text-gray-500 max-w-md">Automate your response to SIEM alerts. Build multi-step logic flows including human-in-the-loop approvals, auto-isolation, and alerting.</p>
+                </div>
+
+                <!-- Editor Form -->
+                <div id="playbook-editor" class="max-w-4xl mx-auto hidden pb-20 md:pb-0">
+                    
+                    <div class="flex flex-col md:flex-row justify-between items-start mb-8 gap-4">
+                        <div class="flex-1 w-full">
+                            <input type="text" id="pb-name" placeholder="Playbook Name" class="w-full bg-transparent text-2xl md:text-3xl font-display font-bold text-white border-b border-transparent hover:border-cyber-800 focus:border-cyber-safe focus:outline-none pb-2 mb-2 transition-colors">
+                            <input type="text" id="pb-desc" placeholder="Brief description of this automation sequence..." class="w-full bg-transparent text-gray-400 text-sm border-b border-transparent hover:border-cyber-800 focus:border-cyber-safe focus:outline-none pb-1 transition-colors">
+                        </div>
+                        <div class="flex items-center gap-3 shrink-0">
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="pb-active" class="sr-only peer" checked>
+                                <div class="w-11 h-6 bg-cyber-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyber-safe"></div>
+                                <span class="ml-3 text-sm font-medium text-gray-300" id="pb-status-text">Active</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Visual Flow Builder -->
+                    <div class="relative pl-6">
+                        <div class="flow-line hidden md:block" id="main-flow-line"></div>
+                        
+                        <!-- Step 1: TRIGGER -->
+                        <div class="relative z-10 mb-8 bg-cyber-900 border border-cyber-800 rounded-xl p-5 md:p-6 shadow-lg">
+                            <div class="absolute -left-[35px] top-6 w-12 h-12 rounded-full bg-cyber-950 border-2 border-cyber-800 hidden md:flex items-center justify-center text-gray-400 z-20">
+                                <i class="fas fa-bolt"></i>
+                            </div>
+                            <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 border-b border-cyber-800 pb-2">Trigger Condition</h3>
+                            
+                            <p class="text-sm text-gray-500 mb-4">Initiate sequence when an XDR Event matches:</p>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                                <div>
+                                    <label class="block text-xs text-gray-500 mb-1">Field Name</label>
+                                    <select id="cond-field" class="w-full bg-cyber-950 border border-cyber-800 rounded py-2 px-3 text-sm text-white focus:border-cyber-safe focus:outline-none font-mono">
+                                        <option value="event_id">event_id</option>
+                                        <option value="severity_gt">severity (greater than)</option>
+                                        <option value="source_ip">source_ip</option>
+                                        <option value="regex_match">raw_data (regex match)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-500 mb-1">Operator</label>
+                                    <select disabled class="w-full bg-cyber-800/50 border border-cyber-800 rounded py-2 px-3 text-sm text-gray-500 cursor-not-allowed font-mono">
+                                        <option>Depends on Field</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-500 mb-1">Target Value</label>
+                                    <input type="text" id="cond-value" placeholder="e.g. 4688" class="w-full bg-cyber-950 border border-cyber-800 rounded py-2 px-3 text-sm text-white focus:border-cyber-safe focus:outline-none font-mono">
+                                </div>
+                            </div>
+                            <div class="bg-cyber-950 p-3 rounded font-mono text-xs text-gray-400 border border-cyber-800">
+                                <i class="fas fa-code mr-2 text-cyber-safe"></i> Raw JSON: <span id="json-preview" class="text-cyber-neon">{"event_id": 4688}</span>
+                            </div>
+                        </div>
+
+                        <!-- MULTI-STEP SEQUENCE -->
+                        <div id="sequence-container" class="space-y-6">
+                            <!-- Steps dynamically injected here -->
+                        </div>
+
+                        <!-- Add Step Button -->
+                        <div class="relative z-10 mt-6 flex justify-center md:justify-start md:pl-8">
+                            <button onclick="addStep()" class="bg-cyber-900 border border-cyber-800 hover:border-cyber-safe hover:bg-cyber-safe/10 text-gray-300 hover:text-cyber-safe font-bold py-2 px-6 rounded-full shadow-lg transition-all flex items-center gap-2 text-sm">
+                                <i class="fas fa-plus-circle"></i> Add Next Step
+                            </button>
+                        </div>
+                        
+                    </div>
+
+                    <!-- Footer Actions -->
+                    <div class="flex flex-col sm:flex-row justify-end gap-4 mt-12 border-t border-cyber-800 pt-6">
+                        <button onclick="deletePlaybook()" id="btn-delete" class="px-5 py-2.5 rounded text-sm font-bold text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors hidden text-center">
+                            <i class="fas fa-trash-alt mr-2"></i> Delete Playbook
+                        </button>
+                        <button onclick="savePlaybook()" id="btn-save" class="bg-cyber-safe hover:bg-emerald-500 text-cyber-950 font-bold py-3 sm:py-2.5 px-8 rounded shadow-lg transition-all text-center">
+                            <i class="fas fa-save mr-2"></i> Save Playbook Sequence
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Navigation for Mobile (Mobile Only) -->
+    <nav class="mega-bottom-nav hidden-desktop" aria-label="Mobile navigation">
+        <a href="/dashboard" title="Dashboard">
+            <i class="fas fa-chart-line nav-icon"></i>
+            <span>Dashboard</span>
+        </a>
+        <a href="/siem-logs" title="SIEM Logs">
+            <i class="fas fa-radar nav-icon"></i>
+            <span>SIEM</span>
+        </a>
+        <a href="/incident-response" title="Incident Response">
+            <i class="fas fa-shield-cross nav-icon"></i>
+            <span>IR</span>
+        </a>
+        <a href="/threat-intel" title="Threat Intelligence">
+            <i class="fas fa-earth-americas nav-icon"></i>
+            <span>Threats</span>
+        </a>
+        <a href="/soar-automation" title="SOAR" class="active">
+            <i class="fas fa-wand-magic-sparkles nav-icon"></i>
+            <span>SOAR</span>
+        </a>
+        <a href="/phishing-analyzer" title="Phishing">
+            <i class="fas fa-envelope-shield nav-icon"></i>
+            <span>Email</span>
+        </a>
+    </nav>
+
+    <script>
+        // ===== MOBILE RESPONSIVE CONTROLLER =====
+        class MobileResponsive {
+            constructor() {
+                this.sidebar = document.querySelector('aside.w-64');
+                this.overlay = document.getElementById('mobile-overlay') || this.createOverlay();
+                this.hamburger = document.querySelector('.mobile-hamburger') || this.createHamburger();
+                this.isOpen = false;
+                this.init();
+            }
+
+            createOverlay() {
+                const overlay = document.createElement('div');
+                overlay.id = 'mobile-overlay';
+                document.body.appendChild(overlay);
+                return overlay;
+            }
+
+            createHamburger() {
+                const btn = document.createElement('button');
+                btn.className = 'mobile-hamburger';
+                btn.setAttribute('aria-label', 'Toggle navigation menu');
+                btn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>';
+                
+                const header = document.querySelector('header');
+                if (header) {
+                    header.insertBefore(btn, header.firstChild);
+                }
+                return btn;
+            }
+
+            init() {
+                this.hamburger.addEventListener('click', () => this.toggleSidebar());
+                this.overlay.addEventListener('click', () => this.closeSidebar());
+
+                if (this.sidebar) {
+                    this.sidebar.querySelectorAll('a').forEach(link => {
+                        link.addEventListener('click', () => this.closeSidebar());
+                    });
+                }
+
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' && this.isOpen) this.closeSidebar();
+                });
+
+                window.addEventListener('resize', () => {
+                    if (window.innerWidth > 1024 && this.isOpen) {
+                        this.closeSidebar();
+                    }
+                });
+            }
+
+            toggleSidebar() {
+                this.isOpen ? this.closeSidebar() : this.openSidebar();
+            }
+
+            openSidebar() {
+                this.isOpen = true;
+                if (this.sidebar) this.sidebar.classList.add('mobile-open');
+                this.overlay.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
+
+            closeSidebar() {
+                this.isOpen = false;
+                if (this.sidebar) this.sidebar.classList.remove('mobile-open');
+                this.overlay.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        }
+
+        // Data State
+        let playbooks = [];
+        let activePlaybookId = null;
+        let currentSteps = [];
+
+        // Utility: Clock Update
+        setInterval(() => {
+            document.getElementById('clock-display').innerText = new Date().toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
+        }, 1000);
+
+        function logout() {
+            localStorage.removeItem('megasoc_token');
+            window.location.href = '/login';
+        }
+
+        // Status Toggle Text
+        document.getElementById('pb-active').addEventListener('change', function() {
+            document.getElementById('pb-status-text').innerText = this.checked ? "Active" : "Disabled";
+            document.getElementById('pb-status-text').className = this.checked ? "ml-3 text-sm font-medium text-cyber-safe" : "ml-3 text-sm font-medium text-gray-500";
+        });
+
+        // JSON Preview Updater
+        document.getElementById('cond-field').addEventListener('input', updateJsonPreview);
+        document.getElementById('cond-value').addEventListener('input', updateJsonPreview);
+
+        function updateJsonPreview() {
+            const field = document.getElementById('cond-field').value;
+            let val = document.getElementById('cond-value').value;
+            if (!isNaN(val) && val.trim() !== '') val = parseInt(val);
+            const json = {};
+            json[field] = val;
+            document.getElementById('json-preview').innerText = JSON.stringify(json);
+        }
+
+        // Mock Initial Load adapted for Multi-Step XDR Backend
+        function loadMockPlaybooks() {
+            playbooks = [
+                {
+                    id: 1,
+                    name: "Ransomware Containment (Human-in-Loop)",
+                    description: "Alert on suspicious process, wait for human approval, then isolate host.",
+                    condition_json: { "event_id": 4688 },
+                    playbook_steps: [
+                        { step: 1, action: "create_alert", payload: { severity: "Critical" } },
+                        { step: 2, action: "approval", payload: {} },
+                        { step: 3, action: "auto_isolate", payload: {} }
+                    ],
+                    is_active: true
+                },
+                {
+                    id: 2,
+                    name: "Auto-Isolate on Multiple Failed Logins",
+                    description: "Isolate host if Event 4625 happens repeatedly",
+                    condition_json: { "event_id": 4625 },
+                    playbook_steps: [
+                        { step: 1, action: "create_alert", payload: { severity: "High" } },
+                        { step: 2, action: "auto_isolate", payload: {} }
+                    ],
+                    is_active: true
+                }
+            ];
+            
+            document.getElementById('loading-playbooks').style.display = 'none';
+            renderPlaybookList();
+        }
+
+        function renderPlaybookList() {
+            const list = document.getElementById('playbook-list');
+            list.innerHTML = '';
+
+            playbooks.forEach(pb => {
+                const icon = pb.is_active ? '<i class="fas fa-check-circle text-cyber-safe text-xs"></i>' : '<i class="fas fa-minus-circle text-gray-600 text-xs"></i>';
+                const div = document.createElement('div');
+                div.className = `playbook-card border border-cyber-800 rounded-lg p-4 cursor-pointer bg-cyber-900 ${activePlaybookId === pb.id ? 'active' : ''}`;
+                div.onclick = () => selectPlaybook(pb.id);
+                
+                let stepsStr = pb.playbook_steps ? pb.playbook_steps.map(s => s.action).join(' <i class="fas fa-arrow-right text-[8px] mx-1"></i> ') : "No steps";
+                
+                div.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <h4 class="text-sm font-bold text-white line-clamp-1">${pb.name}</h4>
+                        ${icon}
+                    </div>
+                    <div class="flex items-center gap-2 text-[10px] font-mono text-gray-500 mb-2">
+                        <span class="bg-cyber-950 px-1.5 py-0.5 rounded border border-cyber-800">IF ${Object.keys(pb.condition_json)[0]}</span>
+                    </div>
+                    <p class="text-[10px] text-cyber-neon font-mono truncate uppercase">${stepsStr}</p>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function selectPlaybook(id) {
+            activePlaybookId = id;
+            renderPlaybookList(); 
+            
+            const pb = playbooks.find(p => p.id === id);
+            if (!pb) return;
+
+            document.getElementById('builder-empty-state').classList.add('hidden');
+            document.getElementById('playbook-editor').classList.remove('hidden');
+            document.getElementById('btn-delete').classList.remove('hidden');
+
+            document.getElementById('pb-name').value = pb.name;
+            document.getElementById('pb-desc').value = pb.description;
+            
+            const activeCheckbox = document.getElementById('pb-active');
+            activeCheckbox.checked = pb.is_active;
+            document.getElementById('pb-status-text').innerText = pb.is_active ? "Active" : "Disabled";
+            document.getElementById('pb-status-text').className = pb.is_active ? "ml-3 text-sm font-medium text-cyber-safe" : "ml-3 text-sm font-medium text-gray-500";
+
+            const condKey = Object.keys(pb.condition_json)[0];
+            const condVal = pb.condition_json[condKey];
+            document.getElementById('cond-field').value = condKey;
+            document.getElementById('cond-value').value = condVal;
+            updateJsonPreview();
+
+            // Load multi-steps
+            currentSteps = JSON.parse(JSON.stringify(pb.playbook_steps || []));
+            renderSteps();
+        }
+
+        function createNewPlaybook() {
+            activePlaybookId = null;
+            renderPlaybookList();
+            
+            document.getElementById('builder-empty-state').classList.add('hidden');
+            document.getElementById('playbook-editor').classList.remove('hidden');
+            document.getElementById('btn-delete').classList.add('hidden'); 
+
+            document.getElementById('pb-name').value = '';
+            document.getElementById('pb-desc').value = '';
+            document.getElementById('pb-active').checked = true;
+            document.getElementById('pb-status-text').innerText = "Active";
+            document.getElementById('cond-field').value = 'event_id';
+            document.getElementById('cond-value').value = '';
+            updateJsonPreview();
+
+            currentSteps = [{ step: 1, action: 'create_alert', payload: { severity: 'High' } }];
+            renderSteps();
+        }
+
+        // --- MULTI-STEP LOGIC ---
+
+        function addStep() {
+            const nextNum = currentSteps.length + 1;
+            currentSteps.push({ step: nextNum, action: 'create_alert', payload: { severity: 'High' } });
+            renderSteps();
+        }
+
+        function removeStep(index) {
+            currentSteps.splice(index, 1);
+            // Re-index steps
+            currentSteps.forEach((s, i) => s.step = i + 1);
+            renderSteps();
+        }
+
+        function updateStepAction(index, action) {
+            currentSteps[index].action = action;
+            // Reset payload defaults for safety
+            if (action === 'create_alert') currentSteps[index].payload = { severity: 'High' };
+            else if (action === 'webhook_slack') currentSteps[index].payload = { url: '' };
+            else currentSteps[index].payload = {};
+            renderSteps();
+        }
+
+        function updateStepPayload(index, key, value) {
+            if(!currentSteps[index].payload) currentSteps[index].payload = {};
+            currentSteps[index].payload[key] = value;
+        }
+
+        function renderSteps() {
+            const container = document.getElementById('sequence-container');
+            container.innerHTML = '';
+            
+            // Manage main line height visually
+            const flowLine = document.getElementById('main-flow-line');
+            if(currentSteps.length === 0) { flowLine.style.display = 'none'; }
+            else { flowLine.style.display = 'block'; }
+
+            currentSteps.forEach((step, index) => {
+                let payloadHtml = '';
+                
+                if (step.action === 'create_alert') {
+                    const sev = step.payload.severity || 'High';
+                    payloadHtml = `
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">Alert Severity</label>
+                            <select onchange="updateStepPayload(${index}, 'severity', this.value)" class="w-full bg-cyber-900 border border-cyber-800 rounded py-2 px-3 text-sm text-white focus:outline-none">
+                                <option value="Low" ${sev==='Low'?'selected':''}>Low</option>
+                                <option value="Medium" ${sev==='Medium'?'selected':''}>Medium</option>
+                                <option value="High" ${sev==='High'?'selected':''}>High</option>
+                                <option value="Critical" ${sev==='Critical'?'selected':''}>Critical</option>
+                            </select>
+                        </div>
+                    `;
+                } else if (step.action === 'webhook_slack') {
+                    const url = step.payload.url || '';
+                    payloadHtml = `
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">Webhook URL</label>
+                            <input type="url" value="${url}" onchange="updateStepPayload(${index}, 'url', this.value)" placeholder="https://hooks.slack.com/services/..." class="w-full bg-cyber-900 border border-cyber-800 rounded py-2 px-3 text-sm text-white focus:outline-none font-mono">
+                        </div>
+                    `;
+                } else if (step.action === 'auto_isolate' || step.action === 'block_ip') {
+                    payloadHtml = `
+                        <div class="flex items-center gap-3 text-cyber-alert bg-cyber-alert/10 p-3 rounded border border-cyber-alert/20">
+                            <i class="fas fa-exclamation-triangle text-xl"></i>
+                            <p class="text-xs font-medium">This action dispatches a live IR task directly to the agent.</p>
+                        </div>
+                    `;
+                } else if (step.action === 'approval') {
+                    payloadHtml = `
+                        <div class="flex items-center gap-3 text-purple-400 bg-purple-500/10 p-3 rounded border border-purple-500/20">
+                            <i class="fas fa-user-shield text-xl"></i>
+                            <p class="text-xs font-medium">State Machine Paused: Playbook will wait here until a human analyst approves the case in the dashboard.</p>
+                        </div>
+                    `;
+                }
+
+                const div = document.createElement('div');
+                div.className = "relative z-10 bg-cyber-900 border border-cyber-800 rounded-xl p-5 md:p-6 shadow-lg";
+                
+                // Colors based on action type
+                let iconColor = 'text-cyber-safe';
+                let borderColor = 'border-cyber-safe';
+                let icon = 'fa-play';
+                
+                if(step.action === 'approval') { iconColor = 'text-purple-400'; borderColor = 'border-purple-500'; icon = 'fa-pause'; }
+                if(step.action.includes('isolate') || step.action.includes('block')) { iconColor = 'text-cyber-alert'; borderColor = 'border-cyber-alert'; icon = 'fa-fire'; }
+
+                div.innerHTML = `
+                    <div class="absolute -left-[35px] top-6 w-12 h-12 rounded-full bg-cyber-950 border-2 ${borderColor} hidden md:flex items-center justify-center ${iconColor} z-20 shadow-[0_0_15px_currentColor] opacity-70">
+                        <span class="font-bold font-mono text-sm">${step.step}</span>
+                    </div>
+                    
+                    <div class="flex justify-between items-center mb-4 border-b border-cyber-800 pb-2">
+                        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                            <i class="fas ${icon} ${iconColor} md:hidden"></i> Sequence Step ${step.step}
+                        </h3>
+                        ${index > 0 ? `<button onclick="removeStep(${index})" class="text-red-400 hover:text-red-300 text-xs"><i class="fas fa-times"></i> Remove</button>` : ''}
+                    </div>
+                    
+                    <div class="mb-5">
+                        <label class="block text-xs text-gray-500 mb-2">Action / State</label>
+                        <select onchange="updateStepAction(${index}, this.value)" class="w-full bg-cyber-950 border border-cyber-800 rounded py-3 px-3 text-sm text-white focus:border-cyber-safe focus:outline-none font-mono">
+                            <option value="create_alert" ${step.action==='create_alert'?'selected':''}>Create SOC Alert Ticket</option>
+                            <option value="approval" ${step.action==='approval'?'selected':''}>Wait for Human Approval (Stateful)</option>
+                            <option value="auto_isolate" ${step.action==='auto_isolate'?'selected':''}>IR: Auto-Isolate Host (C2)</option>
+                            <option value="block_ip" ${step.action==='block_ip'?'selected':''}>IR: Block Source IP (Firewall)</option>
+                            <option value="webhook_slack" ${step.action==='webhook_slack'?'selected':''}>Send Slack/Discord Webhook</option>
+                        </select>
+                    </div>
+
+                    <div class="space-y-4 p-4 bg-cyber-950 border border-cyber-800 rounded min-h-[60px]">
+                        ${payloadHtml}
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // Save
+        function savePlaybook() {
+            const btn = document.getElementById('btn-save');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Saving...';
+            
+            const name = document.getElementById('pb-name').value;
+            const desc = document.getElementById('pb-desc').value;
+            const isActive = document.getElementById('pb-active').checked;
+            
+            const cField = document.getElementById('cond-field').value;
+            let cVal = document.getElementById('cond-value').value;
+            if (!isNaN(cVal) && cVal.trim() !== '') cVal = parseInt(cVal);
+            const condition = {}; condition[cField] = cVal;
+
+            setTimeout(() => {
+                if (activePlaybookId) {
+                    const idx = playbooks.findIndex(p => p.id === activePlaybookId);
+                    playbooks[idx] = { id: activePlaybookId, name, description: desc, condition_json: condition, playbook_steps: currentSteps, is_active: isActive };
+                } else {
+                    const newId = playbooks.length ? Math.max(...playbooks.map(p => p.id)) + 1 : 1;
+                    playbooks.push({ id: newId, name: name || "Untitled Sequence", description: desc, condition_json: condition, playbook_steps: currentSteps, is_active: isActive });
+                    activePlaybookId = newId;
+                }
+                
+                renderPlaybookList();
+                btn.innerHTML = '<i class="fas fa-check mr-2"></i> Sequence Saved';
+                document.getElementById('btn-delete').classList.remove('hidden');
+                
+                setTimeout(() => {
+                    btn.innerHTML = '<i class="fas fa-save mr-2"></i> Save Playbook Sequence';
+                }, 2000);
+            }, 500); 
+        }
+
+        function deletePlaybook() {
+            if(!activePlaybookId) return;
+            if(confirm("Are you sure you want to delete this sequence? This cannot be undone.")) {
+                playbooks = playbooks.filter(p => p.id !== activePlaybookId);
+                activePlaybookId = null;
+                renderPlaybookList();
+                
+                document.getElementById('playbook-editor').classList.add('hidden');
+                document.getElementById('builder-empty-state').classList.remove('hidden');
+            }
+        }
+
+        // Init
+        document.addEventListener('DOMContentLoaded', () => {
+            if (document.querySelector('aside.w-64')) {
+                new MobileResponsive();
+            }
+            loadMockPlaybooks();
+        });
+
+    </script>
+</body>
+</html>

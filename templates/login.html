@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In - MegaSOC by Megadriod</title>
+    <meta name="description" content="Sign in to your MegaSOC enterprise account.">
+    <!-- Tailwind CSS for Enterprise Styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Premium Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts: Inter & Space Grotesk -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { 
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Space Grotesk', 'sans-serif']
+                    },
+                    colors: {
+                        cyber: {
+                            950: '#040914',
+                            900: '#0B1120',
+                            800: '#1E293B',
+                            accent: '#3B82F6',
+                            neon: '#06B6D4',
+                            alert: '#EF4444',
+                            safe: '#10B981'
+                        }
+                    },
+                    backgroundImage: {
+                        'hex-pattern': "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0l25.98 15v30L30 60 4.02 45V15L30 0zm0 2.31L6.02 16.16v27.68L30 57.69l23.98-13.85V16.16L30 2.31z' fill='%231E293B' fill-opacity='0.15' fill-rule='evenodd'/%3E%3C/svg%3E\")"
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-cyber-950 text-gray-300 font-sans antialiased min-h-screen flex selection:bg-cyber-accent selection:text-white">
+
+    <!-- Left Side: Enterprise Value Prop (Hidden on small screens) -->
+    <div class="hidden lg:flex lg:w-1/2 relative bg-hex-pattern border-r border-cyber-800 items-center justify-center p-12 overflow-hidden">
+        <!-- Glow FX -->
+        <div class="absolute top-[10%] left-[-10%] w-[500px] h-[500px] bg-cyber-accent/10 rounded-full blur-[100px] pointer-events-none"></div>
+        <div class="absolute bottom-[-10%] right-[10%] w-[400px] h-[400px] bg-cyber-neon/10 rounded-full blur-[100px] pointer-events-none"></div>
+
+        <div class="relative z-10 max-w-lg">
+            <a href="/" class="flex items-center gap-3 group cursor-pointer mb-12 inline-flex">
+                <img src="logo.png" alt="Megadriod Logo" class="h-12 w-auto group-hover:scale-105 transition-transform" 
+                     onerror="this.onerror=null; this.outerHTML='<div class=\'w-12 h-12 rounded-lg bg-gradient-to-br from-cyber-accent to-cyber-neon flex items-center justify-center text-white text-2xl shadow-[0_0_15px_rgba(6,182,212,0.5)]\'><i class=\'fas fa-shield-virus\'></i></div>'">
+                <span class="font-display font-bold text-3xl tracking-tight text-white">
+                    Mega<span class="text-white">SOC</span>
+                </span>
+            </a>
+
+            <div class="bg-cyber-900/80 backdrop-blur-md border border-cyber-800 rounded-2xl p-8 shadow-2xl">
+                <div class="flex items-center justify-between mb-6 pb-4 border-b border-cyber-800">
+                    <h3 class="text-lg font-bold text-white flex items-center font-display">
+                        <i class="fas fa-satellite-dish text-cyber-neon mr-3"></i> Global Threat Feed
+                    </h3>
+                    <div class="flex space-x-2 animate-pulse">
+                        <div class="w-2 h-2 rounded-full bg-cyber-safe"></div>
+                    </div>
+                </div>
+                <div class="font-mono text-sm space-y-5">
+                    <div class="flex flex-col gap-1">
+                        <span class="text-gray-500 text-xs uppercase tracking-wider">System Status</span>
+                        <span class="text-cyber-safe flex items-center gap-2"><i class="fas fa-check-circle"></i> All analytic engines operational</span>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <span class="text-gray-500 text-xs uppercase tracking-wider">Active Agents</span>
+                        <span class="text-white flex items-center gap-2">Monitoring 1,492 endpoints globally</span>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <span class="text-gray-500 text-xs uppercase tracking-wider">Last Blocked Threat</span>
+                        <span class="text-cyber-accent">Ransomware.LockBit.v3 (SHA256: 8f4e...)</span>
+                    </div>
+                </div>
+            </div>
+            
+            <p class="text-sm text-gray-500 mt-8 leading-relaxed">
+                MegaSOC provides unified defense for enterprise networks. Access to this system is strictly monitored and logged. Unauthorized access is prohibited.
+            </p>
+        </div>
+    </div>
+
+    <!-- Right Side: Login Form -->
+    <div class="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-12 lg:p-24 relative">
+        <div class="w-full max-w-md">
+            
+            <!-- Mobile Header (Visible only on mobile) -->
+            <div class="lg:hidden flex items-center justify-center gap-3 mb-10">
+                <img src="logo.png" alt="Megadriod Logo" class="h-10 w-auto" 
+                     onerror="this.onerror=null; this.outerHTML='<div class=\'w-10 h-10 rounded-lg bg-gradient-to-br from-cyber-accent to-cyber-neon flex items-center justify-center text-white text-xl shadow-[0_0_15px_rgba(6,182,212,0.5)]\'><i class=\'fas fa-shield-virus\'></i></div>'">
+                <span class="font-display font-bold text-2xl tracking-tight text-white">
+                    Mega<span class="text-white">SOC</span>
+                </span>
+            </div>
+
+            <div class="mb-10 text-center lg:text-left">
+                <h2 class="text-3xl font-display font-bold text-white mb-2">SOC Authentication</h2>
+                <p class="text-gray-400">Enter your credentials to access the MegaSOC dashboard.</p>
+            </div>
+
+            <div id="alert-container" class="hidden mb-6 p-4 rounded-md text-sm font-medium border">
+                <!-- Alerts injected here via JS -->
+            </div>
+
+            <form id="login-form" class="space-y-6">
+                <!-- Username Field -->
+                <div>
+                    <label for="username" class="block text-sm font-medium text-gray-300 mb-1.5">Admin Username</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-500">
+                            <i class="fas fa-user-shield"></i>
+                        </div>
+                        <input type="text" id="username" name="username" required
+                            class="block w-full pl-10 pr-3 py-3 border border-cyber-800 rounded-md leading-5 bg-cyber-900 text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-cyber-neon focus:border-cyber-neon transition-colors sm:text-sm"
+                            placeholder="Enter your username">
+                    </div>
+                </div>
+
+                <!-- Password Field -->
+                <div>
+                    <div class="flex justify-between items-center mb-1.5">
+                        <label for="password" class="block text-sm font-medium text-gray-300">Secure Password</label>
+                        <a href="#" class="text-xs font-medium text-cyber-neon hover:text-white transition-colors">Forgot password?</a>
+                    </div>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-500">
+                            <i class="fas fa-lock"></i>
+                        </div>
+                        <input type="password" id="password" name="password" required
+                            class="block w-full pl-10 pr-3 py-3 border border-cyber-800 rounded-md leading-5 bg-cyber-900 text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-cyber-neon focus:border-cyber-neon transition-colors sm:text-sm"
+                            placeholder="••••••••">
+                    </div>
+                </div>
+                
+                <div class="flex items-center">
+                    <input id="remember-me" name="remember-me" type="checkbox" class="h-4 w-4 text-cyber-neon focus:ring-cyber-neon border-gray-700 rounded bg-cyber-900">
+                    <label for="remember-me" class="ml-2 block text-sm text-gray-400">
+                        Remember this device
+                    </label>
+                </div>
+
+                <button type="submit" id="submit-btn"
+                    class="w-full flex justify-center items-center gap-2 py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-bold text-white bg-gradient-to-r from-cyber-accent to-cyber-neon hover:from-blue-600 hover:to-cyan-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyber-neon focus:ring-offset-cyber-950 transition-all transform hover:-translate-y-0.5">
+                    <i class="fas fa-sign-in-alt"></i> Authenticate
+                </button>
+            </form>
+
+            <div class="mt-8 text-center text-sm text-gray-400">
+                Don't have an enterprise account? 
+                <a href="/register" class="font-medium text-cyber-neon hover:text-white transition-colors">
+                    Deploy MegaSOC <i class="fas fa-arrow-right ml-1 text-xs"></i>
+                </a>
+            </div>
+            
+        </div>
+    </div>
+
+    <!-- Frontend Logic connecting to FastAPI Backend -->
+    <script>
+        document.getElementById('login-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const btn = document.getElementById('submit-btn');
+            const alertBox = document.getElementById('alert-container');
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            // Reset Alerts
+            alertBox.classList.add('hidden');
+            alertBox.classList.remove('bg-red-900/50', 'border-red-500', 'text-red-400', 'bg-green-900/50', 'border-green-500', 'text-green-400');
+
+            function showAlert(message, type) {
+                alertBox.classList.remove('hidden');
+                alertBox.innerHTML = message;
+                if(type === 'error') {
+                    alertBox.classList.add('bg-red-900/50', 'border-red-500', 'text-red-400');
+                } else {
+                    alertBox.classList.add('bg-green-900/50', 'border-green-500', 'text-green-400');
+                }
+            }
+
+            // Set loading state
+            const originalBtnText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Verifying Credentials...';
+            btn.disabled = true;
+            btn.classList.add('opacity-75', 'cursor-not-allowed');
+
+            try {
+                // OAuth2PasswordRequestForm expects form data, not JSON
+                const formData = new URLSearchParams();
+                formData.append('username', username);
+                formData.append('password', password);
+
+                // Fetch against the real backend route we created in main.py
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: formData.toString()
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showAlert('<i class="fas fa-shield-check mr-2"></i> Authentication successful. Establishing secure session...', 'success');
+                    
+                    // Store the real JWT Token
+                    localStorage.setItem('megasoc_token', data.access_token);
+                    
+                    // Redirect to the dashboard
+                    setTimeout(() => {
+                        window.location.href = '/dashboard';
+                    }, 1000);
+                } else {
+                    // Handle Incorrect credentials
+                    showAlert(`<i class="fas fa-exclamation-triangle mr-2"></i> Access Denied: ${data.detail || 'Invalid credentials'}`, 'error');
+                    btn.innerHTML = originalBtnText;
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-75', 'cursor-not-allowed');
+                }
+            } catch (error) {
+                console.error('Login Error:', error);
+                showAlert('<i class="fas fa-exclamation-triangle mr-2"></i> Connection error. Unable to reach authentication server.', 'error');
+                btn.innerHTML = originalBtnText;
+                btn.disabled = false;
+                btn.classList.remove('opacity-75', 'cursor-not-allowed');
+            }
+        });
+    </script>
+</body>
+</html>
