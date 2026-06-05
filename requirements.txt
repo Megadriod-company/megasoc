@@ -1,5 +1,5 @@
 fastapi 
-uvicorn 
+uvicorn[standard] 
 sqlalchemy 
 pydantic 
 passlib[bcrypt] 
@@ -14,3 +14,4 @@ beautifulsoup4
 user-agents 
 tldextract
 gunicorn
+jinja2
